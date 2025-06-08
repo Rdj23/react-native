@@ -1,15 +1,18 @@
+// File: android/build.gradle
+
 buildscript {
     ext {
-        buildToolsVersion = "35.0.0"
-        minSdkVersion = 24
-        compileSdkVersion = 35
-        targetSdkVersion = 35
-        ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.0.21"
+        buildToolsVersion   = "35.0.0"
+        minSdkVersion       = 24
+        compileSdkVersion   = 35
+        targetSdkVersion    = 35
+        ndkVersion          = "27.1.12297006"
+        kotlinVersion       = "2.0.21"
     }
     repositories {
         google()
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
         classpath("com.android.tools.build:gradle")
@@ -19,4 +22,15 @@ buildscript {
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+// You probably want to make sure the JSC Maven repo is visible to all modules. For example:
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        mavenLocal()
+        // This allows Gradle to find the JSC AAR if Hermes is disabled:
+        maven {
+            url "$rootDir/../node_modules/jsc-android/dist"
+        }
+    }
+}
