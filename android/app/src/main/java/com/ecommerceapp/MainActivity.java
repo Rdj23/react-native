@@ -29,7 +29,7 @@ public class MainActivity extends ReactActivity {
         return new DefaultReactActivityDelegate(
             this,
             getMainComponentName(),
-            DefaultNewArchitectureEntryPoint.getFabricEnabled()  // or .isFabricEnabled()
+            false
         );
     }
 }
