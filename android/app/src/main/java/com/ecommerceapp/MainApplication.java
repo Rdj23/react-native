@@ -34,8 +34,8 @@ public class MainApplication extends Application implements ReactApplication {
 
          @Override
          public boolean isNewArchEnabled() {
-            return BuildConfig.IS_NEW_ARCHITECTURE_ENABLED;
-        }
+            return false;
+         }
 
         @Override
         public Boolean isHermesEnabled() {
@@ -58,9 +58,6 @@ public class MainApplication extends Application implements ReactApplication {
         // Hook up CleverTap for React Native:
         CleverTapRnAPI.initReactNativeIntegration(this);
 
-        // Load New Architecture if you opted in:
-        if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-            DefaultNewArchitectureEntryPoint.load();
-        }
+       
     }
 }
