@@ -1,26 +1,28 @@
-// App.js
-import React from 'react';                   // Needed to interpret JSX :contentReference[oaicite:0]{index=0}
-import { View, Text, StyleSheet } from 'react-native';  // Core UI components :contentReference[oaicite:1]{index=1}
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import AuthStack from './src/navigation/AuthStack';
+import auth from '@react-native-firebase/auth';
+import CleverTap from 'clevertap-react-native';
+import { Provider as PaperProvider } from 'react-native-paper';
 
 export default function App() {
+  useEffect(() => {
+    // Setup CleverTap (optional but good for event tracking)
+    CleverTap.setDebugLevel(3);
+    CleverTap.initializeInbox();
+
+    const unsubscribe = auth().onAuthStateChanged(user => {
+      console.log(user ? 'Signed in:' + user.email : 'Signed out');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Hello, World!</Text>
-    </View>
+    <PaperProvider>
+      <NavigationContainer>
+        <AuthStack />
+      </NavigationContainer>
+    </PaperProvider>
   );
 }
-
-// Simple styles to center content
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,                    // Fill the screen
-    justifyContent: 'center',   // Center vertically
-    alignItems: 'center',       // Center horizontally
-    backgroundColor: '#ffffff', // White background
-  },
-  text: {
-    fontSize: 24,               // Large text
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-});
