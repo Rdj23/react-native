@@ -12,7 +12,8 @@
   "dependencies": {
     "clevertap-react-native": "^3.4.0",
     "react": "19.0.0",
-    "react-native": "0.79.3"
+    "react-native": "0.79.3",
+    "react-native-gesture-handler": "^2.25.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
