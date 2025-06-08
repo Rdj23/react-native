@@ -3,6 +3,11 @@ import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
 
+//clevertap
+import CleverTapReact
+import CleverTapSDK
+import CoreLocation
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
   var window: UIWindow?
@@ -14,6 +19,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+
+    // integrate CleverTap SDK using the autoIntegrate option
+    CleverTap.autoIntegrate()
+    CleverTap.setDebugLevel(CleverTapLogLevel.debug.rawValue)
+    // Notify CleverTap React Native SDK about app launch
+    CleverTapReactManager.sharedInstance()?.applicationDidLaunch(options: launchOptions)
+
+
     let delegate = ReactNativeDelegate()
     let factory = RCTReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

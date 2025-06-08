@@ -11,6 +11,9 @@ import com.swmansion.gesturehandler.react.RNGestureHandlerEnabledRootView;
 
 import com.clevertap.react.CleverTapRnAPI;  // for deep-link integration
 
+import com.clevertap.android.sdk.CleverTapAPI;
+import com.clevertap.android.sdk.CleverTapAPI.LogLevel;
+
 // SoLoader import (legacy overload, still valid for initializing before any JNI loads)
 import com.facebook.soloader.SoLoader;
 
@@ -21,6 +24,7 @@ public class MainActivity extends ReactActivity {
 
          SoLoader.init(this, /* native exopackage */ false);
         super.onCreate(savedInstanceState);
+        CleverTapAPI.setDebugLevel(CleverTapAPI.LogLevel.VERBOSE); 
 
         // Tell CleverTap about any launch deep-link:
         CleverTapRnAPI.setInitialUri(getIntent().getData());
