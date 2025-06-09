@@ -19,8 +19,14 @@ use_frameworks!
 target 'ecommerceApp' do
   config = use_native_modules!
 
+   # Firebase dependencies
+  pod 'Firebase/Core' # Optional
+  pod 'Firebase/Auth'
+
   pod 'clevertap-react-native', :path => '../node_modules/clevertap-react-native'
   pod 'CleverTap-iOS-SDK'
+  pod 'RNSVG', :path => '../node_modules/react-native-svg'
+
 
   use_react_native!(
     :path => config[:reactNativePath],

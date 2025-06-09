@@ -5,6 +5,8 @@ import ReactAppDependencyProvider
 import CleverTapReact
 import CleverTapSDK
 import CoreLocation
+import Firebase
+
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -19,8 +21,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     
     
+     // 🔥 Initialize Firebase for iOS
+    FirebaseApp.configure()
+
     // integrate CleverTap SDK using the autoIntegrate option
     CleverTap.autoIntegrate()
+    CleverTap.setDebugLevel(CleverTapLogLevel.debug.rawValue)
     // Notify CleverTap React Native SDK about app launch
     CleverTapReactManager.sharedInstance()?.applicationDidLaunch(options: launchOptions)
     
