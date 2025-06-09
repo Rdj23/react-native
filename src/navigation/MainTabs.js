@@ -1,33 +1,39 @@
-    import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
+import React from 'react';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+// Navigators or Screens
 
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
-import HomeScreen from '../screens/Home/HomeScreen';
-import SearchScreen from '../screens/Search/SearchScreen';
-// import CartScreen from '../screens/Cart/CartScreen';
-// import ProfileScreen from '../screens/Profile/ProfileScreen';
+import HomeStack from './HomeStack';
+import SearchStack from './SearchStack'; // ✅ NOT SearchScreen directly
+import CartScreen from '../screens/CartScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
+      screenOptions={({route}) => ({
         headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({focused, color, size}) => {
           let iconName;
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Search') iconName = focused ? 'search' : 'search-outline';
-          else if (route.name === 'Cart') iconName = focused ? 'cart' : 'cart-outline';
-          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
 
-          return <Ionicons name={iconName} size={22} color={color} />;
+          if (route.name === 'Home')
+            iconName = focused ? 'home' : 'home-outline';
+          else if (route.name === 'Search')
+            iconName = focused ? 'magnify' : 'magnify';
+          else if (route.name === 'Cart')
+            iconName = focused ? 'cart' : 'cart-outline';
+          else if (route.name === 'Profile')
+            iconName = focused ? 'account-circle' : 'account-circle-outline';
+
+          return (
+            <MaterialCommunityIcons name={iconName} size={24} color={color} />
+          );
         },
         tabBarActiveTintColor: '#30241F',
         tabBarInactiveTintColor: '#888',
-        tabBarLabelStyle: { fontSize: 12 },
+        tabBarLabelStyle: {fontSize: 12},
         tabBarStyle: {
           paddingTop: 6,
           paddingBottom: 6,
@@ -37,12 +43,12 @@ export default function MainTabs() {
           backgroundColor: '#fff',
           elevation: 8,
         },
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
-      {/* <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} /> */}
+      })}>
+      {/* ✅ Each must be a <Tab.Screen> */}
+      <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen name="Search" component={SearchStack} />
+      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
