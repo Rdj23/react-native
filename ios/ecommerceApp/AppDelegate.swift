@@ -1,13 +1,7 @@
 import UIKit
-import React
-import React_RCTAppDelegate
-import ReactAppDependencyProvider
-import Firebase  
-
-//clevertap
-import CleverTapReact
-import CleverTapSDK
-import CoreLocation
+import React                       // via your Bridging Header
+import Firebase                    // RNFirebase
+import CleverTapSDK                // CleverTap native SDK
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
@@ -20,8 +14,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
   ) -> Bool {
     // 1️⃣ Init native SDKs
     FirebaseApp.configure()
-    CleverTap.autoIntegrate()
-    CleverTapReactManager.sharedInstance()?.applicationDidLaunch(options: launchOptions)
+    CleverTap.autoIntegrate()       // this is all you need for CleverTap on iOS
 
     // 2️⃣ Create the React bridge
     bridge = RCTBridge(delegate: self, launchOptions: launchOptions)
@@ -29,14 +22,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
     // 3️⃣ Host it in an RCTRootView
     let rootView = RCTRootView(
       bridge: bridge!,
-      moduleName: "ecommerceApp",
+      moduleName: "ecommerceApp",   // must match app.json→name
       initialProperties: nil
     )
 
     // 4️⃣ Swap in your window
     let rootVC = UIViewController()
     rootVC.view = rootView
-
     window = UIWindow(frame: UIScreen.main.bounds)
     window?.rootViewController = rootVC
     window?.makeKeyAndVisible()
@@ -44,13 +36,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
     return true
   }
 
-  // MARK: - RCTBridgeDelegate
+  // MARK: – RCTBridgeDelegate
   func sourceURL(for bridge: RCTBridge!) -> URL! {
     #if DEBUG
-      return RCTBundleURLProvider.sharedSettings()
-      .jsBundleURL(forBundleRoot: "index", fallbackExtension: nil)
+    return RCTBundleURLProvider
+             .sharedSettings()
+             .jsBundleURL(
+               forBundleRoot:   "index",
+               fallbackExtension: nil    // <-- use fallbackExtension, not fallbackResource
+             )
     #else
-      return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return Bundle.main.url(
+      forResource: "main",
+      withExtension: "jsbundle"
+    )
     #endif
   }
 }
