@@ -1,5 +1,8 @@
 // index.js
 
+import 'react-native-gesture-handler';
+
+
 // ✅ Must go at the top BEFORE any RN module is touched
 if (typeof global.ErrorUtils === 'undefined') {
   global.ErrorUtils = {
