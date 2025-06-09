@@ -14,17 +14,8 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-use_frameworks!
-
-
-pod 'CleverTap-iOS-SDK'
-
 target 'ecommerceApp' do
   config = use_native_modules!
-  use_frameworks! :linkage => :static
-
-  pod 'clevertap-react-native', :path => '../node_modules/clevertap-react-native'
-  pod 'CleverTap-iOS-SDK'
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -40,14 +31,5 @@ target 'ecommerceApp' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
-
-   installer.pods_project.targets.each do |target|
-      if target.name == 'clevertap-react-native'
-        target.build_configurations.each do |config|
-          config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)', '-framework', 'CoreLocation']
-        end
-      end
-    end
   end
 end
-

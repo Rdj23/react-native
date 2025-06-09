@@ -1,7 +1,7 @@
 import UIKit
-import React                       // via your Bridging Header
-import Firebase                    // RNFirebase
-import CleverTapSDK                // CleverTap native SDK
+import React
+import React_RCTAppDelegate
+import ReactAppDependencyProvider
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
@@ -12,23 +12,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, RCTBridgeDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // 1️⃣ Init native SDKs
-    FirebaseApp.configure()
-    CleverTap.autoIntegrate()       // this is all you need for CleverTap on iOS
+    let delegate = ReactNativeDelegate()
+    let factory = RCTReactNativeFactory(delegate: delegate)
+    delegate.dependencyProvider = RCTAppDependencyProvider()
 
-    // 2️⃣ Create the React bridge
-    bridge = RCTBridge(delegate: self, launchOptions: launchOptions)
+    reactNativeDelegate = delegate
+    reactNativeFactory = factory
 
-    // 3️⃣ Host it in an RCTRootView
-    let rootView = RCTRootView(
-      bridge: bridge!,
-      moduleName: "ecommerceApp",   // must match app.json→name
-      initialProperties: nil
-    )
-
-    // 4️⃣ Swap in your window
-    let rootVC = UIViewController()
-    rootVC.view = rootView
     window = UIWindow(frame: UIScreen.main.bounds)
     window?.rootViewController = rootVC
     window?.makeKeyAndVisible()
