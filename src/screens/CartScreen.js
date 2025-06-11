@@ -45,6 +45,7 @@ export default function CartScreen({ navigation }) {
     });
 
     // Optionally clear cart or navigate
+    cartItems.forEach(item => removeItem(item));
   };
 
   const renderItem = ({ item }) => (
