@@ -1,16 +1,18 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-// Navigators or Screens
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import HomeStack from './HomeStack';
-import SearchStack from './SearchStack'; // ✅ NOT SearchScreen directly
+import SearchStack from './SearchStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+
+import {useCart} from '../context/CartContext';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
+   const { totalQuantity } = useCart(); 
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -18,18 +20,24 @@ export default function MainTabs() {
         tabBarIcon: ({focused, color, size}) => {
           let iconName;
 
-          if (route.name === 'Home')
-            iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Search')
-            iconName = focused ? 'magnify' : 'magnify';
-          else if (route.name === 'Cart')
-            iconName = focused ? 'cart' : 'cart-outline';
-          else if (route.name === 'Profile')
-            iconName = focused ? 'account-circle' : 'account-circle-outline';
+          switch (route.name) {
+            case 'Home':
+              iconName = focused ? 'home' : 'home-outline';
+              break;
+            case 'Search':
+              iconName = 'search';
+              break;
+            case 'Cart':
+              iconName = focused ? 'cart' : 'cart-outline';
+              break;
+            case 'Profile':
+              iconName = focused ? 'person' : 'person-outline';
+              break;
+            default:
+              iconName = 'help-circle-outline';
+          }
 
-          return (
-            <MaterialCommunityIcons name={iconName} size={24} color={color} />
-          );
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#30241F',
         tabBarInactiveTintColor: '#888',
@@ -44,10 +52,20 @@ export default function MainTabs() {
           elevation: 8,
         },
       })}>
-      {/* ✅ Each must be a <Tab.Screen> */}
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Search" component={SearchStack} />
-      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{
+          tabBarBadge: totalQuantity > 0 ? totalQuantity : null,
+          tabBarBadgeStyle: {
+            backgroundColor: 'red',
+            color: 'white',
+            fontSize: 10,
+          },
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

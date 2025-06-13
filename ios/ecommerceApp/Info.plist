@@ -41,8 +41,7 @@ R57-875-KK7Z</string>
 	<string>5ab-a52</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>MaterialCommunityIcons</string>
-		<string>Ionicons.ttf</string>
+  		<string>Ionicons.ttf</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

@@ -142,9 +142,10 @@ export default function HomeScreen({navigation}) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerBar}>
-        <TouchableOpacity hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+        <TouchableOpacity onPress={() => navigation.getParent()?.openDrawer()}>
           <MenuIcon width={24} height={24} />
         </TouchableOpacity>
+
         <Text style={styles.title}>GemStore</Text>
         <NotificationIcon width={24} height={24} />
       </View>
