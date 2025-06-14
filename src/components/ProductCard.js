@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Dimensions } from 'react-native';
-import CleverTap from 'clevertap-react-native';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 64) / 2;
@@ -14,7 +13,6 @@ export default function ProductCard({ item, onPress }) {
     </TouchableOpacity>
   );
 }
-
 
 const styles = StyleSheet.create({
   card: {
