@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
+import CleverTap from 'clevertap-react-native';
 import {
   SafeAreaView,
   View,
@@ -13,10 +14,10 @@ import {
 
 import ArrowLeft from '../../src/assets/ArrowLeft.svg';
 import CameraIcon from '../../src/assets/User.svg';
-import { useUser } from '../context/UserContext';
+import {useUser} from '../context/UserContext';
 
-export default function ProfileScreen({ navigation }) {
-  const { user, setUser } = useUser();
+export default function ProfileScreen({navigation}) {
+  const {user, setUser} = useUser();
 
   const [name, setName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
@@ -35,7 +36,23 @@ export default function ProfileScreen({ navigation }) {
   const isEmailValid = /\S+@\S+\.\S+/.test(email);
 
   const togglePreference = key => {
-    setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
+    const updatedValue = !preferences[key];
+    const updatedPrefs = {...preferences, [key]: updatedValue};
+    setPreferences(updatedPrefs);
+
+    // Map to CleverTap keys
+    const clevertapKeyMap = {
+      whatsapp: 'MSG-whatsapp',
+      push: 'MSG-push',
+      sms: 'MSG-sms',
+      email: 'MSG-email',
+    };
+
+    const cleverTapProfileUpdate = {
+      [clevertapKeyMap[key]]: updatedValue,
+    };
+
+    CleverTap.profileSet(cleverTapProfileUpdate);
   };
 
   const handleSave = () => {
@@ -56,14 +73,16 @@ export default function ProfileScreen({ navigation }) {
       preferences,
     });
 
-    if (global.CleverTap) {
-      global.CleverTap.profilePush({
-        Name: name,
-        Email: email,
-        Phone: formattedPhone,
-        ...preferences,
-      });
-    }
+    CleverTap.profileSet({
+      Name: name,
+      Email: email,
+      Phone: formattedPhone,
+
+      'MSG-whatsapp': preferences.whatsapp,
+      'MSG-push': preferences.push,
+      'MSG-sms': preferences.sms,
+      'MSG-email': preferences.email,
+    });
 
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -73,17 +92,19 @@ export default function ProfileScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}>
           <ArrowLeft width={24} height={24} fill="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Edit Profile</Text>
-        <View style={{ width: 24 }} />
+        <View style={{width: 24}} />
       </View>
 
       <ScrollView contentContainerStyle={styles.form}>
         <TouchableOpacity style={styles.avatarWrap} onPress={() => {}}>
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <Image source={{uri: avatarUrl}} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <CameraIcon width={32} height={32} fill="#FFF" />
@@ -94,7 +115,12 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={styles.field}>
           <Text style={styles.label}>Name</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Name" />
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Name"
+          />
         </View>
 
         <View style={styles.field}>
@@ -114,7 +140,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.phoneRow}>
             <Text style={styles.prefix}>+91</Text>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, {flex: 1}]}
               value={phone}
               onChangeText={setPhone}
               placeholder="Phone"
@@ -169,7 +195,7 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
+  container: {flex: 1, backgroundColor: '#FFF'},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -183,11 +209,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#1A1A1A' },
+  title: {fontSize: 18, fontWeight: '700', color: '#1A1A1A'},
 
-  form: { padding: 24 },
-  avatarWrap: { alignItems: 'center', marginBottom: 24 },
-  avatar: { width: 100, height: 100, borderRadius: 50 },
+  form: {padding: 24},
+  avatarWrap: {alignItems: 'center', marginBottom: 24},
+  avatar: {width: 100, height: 100, borderRadius: 50},
   avatarPlaceholder: {
     width: 100,
     height: 100,
@@ -196,18 +222,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  changeText: { marginTop: 8, color: '#666' },
+  changeText: {marginTop: 8, color: '#666'},
 
-  field: { marginBottom: 16 },
-  label: { fontSize: 14, color: '#666', marginBottom: 4 },
+  field: {marginBottom: 16},
+  label: {fontSize: 14, color: '#666', marginBottom: 4},
   input: {
     borderBottomWidth: 1,
     borderBottomColor: '#CCC',
     fontSize: 16,
     paddingVertical: 4,
   },
-  phoneRow: { flexDirection: 'row', alignItems: 'center' },
-  prefix: { fontSize: 16, color: '#333', marginRight: 8 },
+  phoneRow: {flexDirection: 'row', alignItems: 'center'},
+  prefix: {fontSize: 16, color: '#333', marginRight: 8},
 
   prefTitle: {
     fontSize: 16,
@@ -222,9 +248,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  prefLabel: { fontSize: 16, color: '#1A1A1A' },
+  prefLabel: {fontSize: 16, color: '#1A1A1A'},
 
-  error: { color: '#E57373', textAlign: 'center', marginBottom: 12 },
+  error: {color: '#E57373', textAlign: 'center', marginBottom: 12},
 
   saveBtn: {
     marginTop: 24,
@@ -233,5 +259,5 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
   },
-  saveText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  saveText: {color: '#FFF', fontSize: 16, fontWeight: '600'},
 });

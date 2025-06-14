@@ -1,21 +1,31 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { loginWithEmail } from '../../services/firebaseAuth';
+import { useUser } from '../../context/UserContext'; // ✅
 
 export default function LoginScreen({ navigation }) {
+  const { login } = useUser(); // ✅
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
     try {
-      await loginWithEmail(email, password);
-      navigation.replace('Home');
+      const userData = await loginWithEmail(email, password);
+
+      // Instead of navigation.replace, update context state
+      login({
+        name: userData.displayName || '',
+        email: userData.email,
+      
+        Identity : userData.email,
+        
+        
+      });
     } catch (error) {
       console.error(error);
       alert(error.message);
     }
   };
-
   return (
     <View style={styles.container}>
       {/* Static image icon (optional) */}

@@ -6,10 +6,15 @@ export const updateCleverTapProfile = (user) => {
   if (!user) return;
 
   CleverTap.onUserLogin({
-    Name: user.displayName || 'Unknown',
+    'Name': user.displayName || 'User',
     
-    Email: user.email,
+    'Email': user.email,
     // You can add more properties like Phone, Gender, etc. if available
+     'Identity': user.email,
+
+    'MSG-email': true,  
+    'UserType': 'newUser'
+
   });
 };
 

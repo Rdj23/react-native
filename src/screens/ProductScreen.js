@@ -31,14 +31,12 @@ export default function ProductScreen({navigation, route}) {
   // 0) Guard: if no product passed in params, bail.
   // ——————————————————————————————————————
   const product = route?.params?.product;
- 
 
   // ——————————————————————————————————————
   // 1) Cart + Wishlist hooks
   // ——————————————————————————————————————
   const {cartItems, addToCart, incrementItem, decrementItem} = useCart();
   const {isWishlisted, toggleWishlist} = useWishlist();
-
 
   // ——————————————————————————————————————
   // 2) Dummy pickers: COLORS & SIZES + state
@@ -52,9 +50,8 @@ export default function ProductScreen({navigation, route}) {
 
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedSize, setSelectedSize] = useState(SIZES[SIZES.length - 1]);
-  
 
-  // record “viewed” once
+  // record “product clicked” once
   useEffect(() => {
     if (!product) return;
     CleverTap.recordEvent('Product Viewed', {
@@ -119,6 +116,8 @@ export default function ProductScreen({navigation, route}) {
       color: selectedColor.name,
       size: selectedSize,
     });
+    
+   
   };
 
   // ——————————————————————————————————————
