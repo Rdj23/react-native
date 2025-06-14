@@ -54,14 +54,16 @@ export default function ProductScreen({navigation, route}) {
   const [selectedSize, setSelectedSize] = useState(SIZES[SIZES.length - 1]);
   
 
-  // record “viewed” once
+  // record clicked once
   useEffect(() => {
     if (!product) return;
-    CleverTap.recordEvent('Product Viewed', {
+    CleverTap.recordEvent('Product clicked', {
       id: product.id,
       title: product.title,
       price: product.price,
+      
     });
+    CleverTap.profileSet({ cart_additions: 1 });
   }, [product]);
 
   if (!product) {
@@ -119,6 +121,7 @@ export default function ProductScreen({navigation, route}) {
       color: selectedColor.name,
       size: selectedSize,
     });
+     CleverTap.profileSet({ cart_additions: 1 });
   };
 
   // ——————————————————————————————————————

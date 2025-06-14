@@ -15,12 +15,9 @@ export default function CustomDrawerContent({ navigation }) {
   const { totalQuantity } = useCart();
   const { wishlist } = useWishlist();
 
-  const goToTab = (tabName, nestedScreen = null) => {
+  const goToTab = (tabName) => {
     navigation.closeDrawer();
-    navigation.navigate('MainTabs', {
-      screen: tabName,
-      ...(nestedScreen ? { params: { screen: nestedScreen } } : {}),
-    });
+    navigation.navigate(tabName);
   };
 
   return (
@@ -32,7 +29,7 @@ export default function CustomDrawerContent({ navigation }) {
         <Text style={styles.email}>{user.email || 'example@email.com'}</Text>
       </View>
 
-      {/* Drawer Items */}
+      {/* Menu Items */}
       <View style={styles.menu}>
         <DrawerItem
           label="Home"
@@ -56,11 +53,11 @@ export default function CustomDrawerContent({ navigation }) {
           onPress={() => goToTab('Cart')}
         />
         <DrawerItem
-          label={`Wishlist${wishlist.length ? ` (${wishlist.length})` : ''}`}
+          label={`Wishlist${wishlist.length > 0 ? ` (${wishlist.length})` : ''}`}
           icon={({ color, size }) => (
             <Ionicons name="heart-outline" size={size} color={color} />
           )}
-          onPress={() => goToTab('Profile', 'Wishlist')}
+          onPress={() => goToTab('Profile')} // Navigate to Profile tab where Wishlist is shown
         />
         <DrawerItem
           label="Profile"
