@@ -54,7 +54,7 @@ export default function ProductScreen({navigation, route}) {
   // record “product clicked” once
   useEffect(() => {
     if (!product) return;
-    CleverTap.recordEvent('Product Viewed', {
+    CleverTap.recordEvent('Product Clicked', {
       id: product.id,
       title: product.title,
       price: product.price,

@@ -1,12 +1,18 @@
 package com.ecommerceapp;
+import android.os.Build;
 
 import android.os.Bundle;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.defaults.DefaultReactActivityDelegate;
 
-import com.clevertap.react.CleverTapRnAPI;  // ✅ for deep-link integration
-import com.facebook.soloader.SoLoader;      // ✅ initialize SoLoader
+
+import com.clevertap.react.CleverTapRnAPI; // ✅ for deep-link integration
+import com.facebook.soloader.SoLoader; // ✅ initialize SoLoader
+
+import com.clevertap.android.sdk.CleverTapAPI;
+import android.content.Intent;
+
 
 public class MainActivity extends ReactActivity {
 
@@ -31,10 +37,18 @@ public class MainActivity extends ReactActivity {
         boolean turboModuleEnabled = false;
 
         return new DefaultReactActivityDelegate(
-            this,
-            getMainComponentName(),
-            fabricEnabled,
-            turboModuleEnabled
-        );
+                this,
+                getMainComponentName(),
+                fabricEnabled,
+                turboModuleEnabled);
     }
+
+    @Override
+    public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            CleverTapAPI.getDefaultInstance(this).pushNotificationClickedEvent(intent.getExtras());
+        }
+    }
+
 }
