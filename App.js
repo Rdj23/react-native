@@ -66,6 +66,31 @@ export default function App() {
     initPush();
   }, []);
 
+   // In-App listeners (no cleanup)
+  useEffect(() => {
+    CleverTap.addListener(
+      CleverTap.CleverTapInAppNotificationShowed,
+      (evt) => {
+        console.log('In-App shown:', evt);
+        CleverTap.recordEvent('InApp Viewed', { id: evt.id });
+      }
+    );
+    CleverTap.addListener(
+      CleverTap.CleverTapInAppNotificationButtonTapped,
+      (evt) => {
+        console.log('In-App button clicked:', evt);
+        CleverTap.recordEvent('InApp Clicked', { id: evt.id, button: evt.buttonText });
+      }
+    );
+    CleverTap.addListener(
+      CleverTap.CleverTapInAppNotificationDismissed,
+      (evt) => {
+        console.log('In-App dismissed:', evt);
+      }
+    );
+  }, []);
+
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UserProvider>
