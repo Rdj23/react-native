@@ -114,6 +114,13 @@ export default function HomeScreen({navigation}) {
 
     // 2️⃣ Fire your trigger event
     CleverTap.recordEvent('HomeScreen Launched');
+    // Fire a “viewed” event whenever the banner changes
+    useEffect(() => {
+      if (!displayUnits.length) return;
+      const unit = displayUnits[activeIndex];
+      CleverTap.pushDisplayUnitViewedEventForID(unit);
+      console.log('Viewed unit id:', unit.wzrk_id);
+    }, [activeIndex, displayUnits]);
 
     // 3️⃣ Immediately grab any cached units
     CleverTap.getAllDisplayUnits((_, cached) => {
@@ -124,14 +131,6 @@ export default function HomeScreen({navigation}) {
 
     return () => dispListener.remove();
   }, []);
-
-  // Fire a “viewed” event whenever the banner changes
-  useEffect(() => {
-    if (!displayUnits.length) return;
-    const unit = displayUnits[activeIndex];
-    CleverTap.pushDisplayUnitViewedEventForID(unit);
-    console.log('Viewed unit id:', unit.wzrk_id);
-  }, [activeIndex, displayUnits]);
 
   // Auto-cycle banner every 3 seconds
   useEffect(() => {
