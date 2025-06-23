@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   ScrollView,
   DeviceEventEmitter,
+  Linking,
   Platform,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
@@ -86,67 +87,68 @@ export default function HomeScreen({navigation}) {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Banner state
+  // --- Native Display state ---
   const [displayUnits, setDisplayUnits] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Extract media URLs from display-units array
+  // helper: pull urls out of each unit
   const extractUrls = units =>
-    units.reduce((acc, unit) => {
-      (unit.content || []).forEach(c => {
+    units.reduce((acc, u) => {
+      (u.content || []).forEach(c => {
         if (c.media?.url) acc.push(c.media.url);
       });
       return acc;
     }, []);
 
-  // Native Display: trigger fetch, load cache, listen for fresh display units
+  // 1) listen for fresh units  2) fire HomeScreen Launched  3) grab any cached
   useEffect(() => {
-    // 1️⃣ Listen for loaded units
-    const dispListener = DeviceEventEmitter.addListener(
+    const listener = DeviceEventEmitter.addListener(
       'CleverTapDisplayUnitsLoaded',
       units => {
-        if (Array.isArray(units)) {
+        if (Array.isArray(units) && units.length) {
+          setDisplayUnits(units);
           setImageUrls(extractUrls(units));
+
+          // 🔥 viewed the first unit immediately:
+          const firstId = units[0].wzrk_id;
+          CleverTap.pushDisplayUnitViewedEventForID(firstId);
+          console.log('Viewed unit id:', firstId);
         }
       },
     );
 
-    // 2️⃣ Fire your trigger event
     CleverTap.recordEvent('HomeScreen Launched');
-    // Fire a “viewed” event whenever the banner changes
-    useEffect(() => {
-      if (!displayUnits.length) return;
-      const unit = displayUnits[activeIndex];
-      CleverTap.pushDisplayUnitViewedEventForID(unit);
-      console.log('Viewed unit id:', unit.wzrk_id);
-    }, [activeIndex, displayUnits]);
 
-    // 3️⃣ Immediately grab any cached units
     CleverTap.getAllDisplayUnits((_, cached) => {
-      if (Array.isArray(cached)) {
+      if (Array.isArray(cached) && cached.length) {
+        setDisplayUnits(cached);
         setImageUrls(extractUrls(cached));
+
+        const firstId = cached[0].wzrk_id;
+        CleverTap.pushDisplayUnitViewedEventForID(firstId);
+        console.log('Viewed (cached) unit id:', firstId);
       }
     });
 
-    return () => dispListener.remove();
+    return () => listener.remove();
   }, []);
 
-  // Auto-cycle banner every 3 seconds
+  // auto‐cycle every 3s
   useEffect(() => {
-    if (!imageUrls.length) return;
+    if (imageUrls.length < 2) return;
     const iv = setInterval(() => {
-      setActiveIndex(i => (i === imageUrls.length - 1 ? 0 : i + 1));
+      setActiveIndex(i => (i + 1) % imageUrls.length);
     }, 3000);
     return () => clearInterval(iv);
   }, [imageUrls]);
 
-  // Load current Firebase user
+  // Firebase user
   useEffect(() => {
     setUser(auth().currentUser);
   }, []);
 
-  // Fetch product sections on tab change
+  // fetch your product sections
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -169,7 +171,7 @@ export default function HomeScreen({navigation}) {
       .then(results => {
         if (!alive) return;
         const map = {};
-        results.forEach(sec => (map[sec.key] = sec.items));
+        results.forEach(s => (map[s.key] = s.items));
         setSectionsData(map);
       })
       .catch(console.error)
@@ -197,7 +199,7 @@ export default function HomeScreen({navigation}) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Bar */}
+      {/* Header */}
       <View style={styles.headerBar}>
         <TouchableOpacity onPress={() => navigation.getParent()?.openDrawer()}>
           <MenuIcon width={24} height={24} />
@@ -213,69 +215,46 @@ export default function HomeScreen({navigation}) {
           : 'Welcome to CT-ecom'}
       </Text>
 
-      {/* Category Tabs */}
+      {/* Tabs */}
       <CategoryTabs selectedKey={selectedTab} onSelect={setSelectedTab} />
 
-      {/* Main Scroll View */}
+      {/* Content */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Dynamic Native Display Banner */}
-        <View style={styles.bannerWrap}>
-          <TouchableOpacity
-            style={styles.bannerWrap}
-            activeOpacity={0.8}
-            onPress={() => {
-              const unit = displayUnits[activeIndex];
-              if (!unit) return;
-              CleverTap.pushDisplayUnitClickedEventForID(unit);
-              console.log('Clicked unit id:', unit.wzrk_id);
-              unit.action?.url?.android &&
-                Linking.openURL(unit.action.url.android);
-            }}></TouchableOpacity>
+        {/* 🎯 Native Display Banner */}
+        <TouchableOpacity
+          style={styles.bannerWrap}
+          activeOpacity={0.8}
+          onPress={() => {
+            const unit = displayUnits[activeIndex];
+            const unitId = unit?.wzrk_id;
+            if (!unitId) return;
+
+            // 🔥 clicked
+            CleverTap.pushDisplayUnitClickedEventForID(unitId);
+            console.log('Clicked unit id:', unitId);
+
+            // open the click-through URL if any
+            if (unit.action?.url?.android) {
+              Linking.openURL(unit.action.url.android);
+            }
+          }}>
           {imageUrls.length > 0 ? (
-            <>
-              <Image
-                source={{uri: imageUrls[activeIndex]}}
-                style={styles.banner}
-                resizeMode="cover"
-              />
-              <Text style={styles.bannerText}>Autumn Collection 2022</Text>
-            </>
-          ) : (
-            <>
-              <Image
-                source={require('../../assets/Banner1.png')}
-                style={styles.banner}
-                resizeMode="cover"
-              />
-              <Text style={styles.bannerText}>Autumn Collection 2022</Text>
-            </>
-          )}
-        </View>
-
-        {/* Optional Thumbnail Carousel */}
-        {imageUrls.length > 1 && (
-          <View style={styles.carouselWrap}>
-            <FlatList
-              horizontal
-              data={imageUrls}
-              keyExtractor={(_, i) => `thumb-${i}`}
-              renderItem={({item, index}) => (
-                <TouchableOpacity onPress={() => setActiveIndex(index)}>
-                  <Image
-                    source={{uri: item}}
-                    style={[
-                      styles.thumbnail,
-                      index === activeIndex && styles.activeThumbnail,
-                    ]}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              )}
+            <Image
+              source={{uri: imageUrls[activeIndex]}}
+              style={styles.banner}
+              resizeMode="cover"
             />
-          </View>
-        )}
+          ) : (
+            <Image
+              source={require('../../assets/Banner1.png')}
+              style={styles.banner}
+              resizeMode="cover"
+            />
+          )}
+          <Text style={styles.bannerText}>Autumn Collection 2022</Text>
+        </TouchableOpacity>
 
-        {/* Product Sections */}
+        {/* Products */}
         {loading ? (
           <ActivityIndicator style={{margin: 24}} />
         ) : (
@@ -330,19 +309,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
-  },
-  carouselWrap: {marginTop: 16, paddingHorizontal: 10},
-  thumbnail: {
-    width: 60,
-    height: 40,
-    marginRight: 8,
-    opacity: 0.5,
-    borderRadius: 4,
-  },
-  activeThumbnail: {
-    opacity: 1,
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   sectionHeader: {
     flexDirection: 'row',
