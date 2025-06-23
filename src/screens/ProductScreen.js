@@ -58,6 +58,8 @@ export default function ProductScreen({navigation, route}) {
       id: product.id,
       title: product.title,
       price: product.price,
+      productImage : product.thumbnail,
+     
     });
   }, [product]);
 
@@ -94,6 +96,7 @@ export default function ProductScreen({navigation, route}) {
     CleverTap.recordEvent(wished ? 'Wishlist Removed' : 'Wishlist Added', {
       id: product.id,
       title: product.title,
+      image: product.thumbnail,
     });
   };
 
@@ -107,7 +110,7 @@ export default function ProductScreen({navigation, route}) {
       price: product.price,
       color: selectedColor.name,
       size: selectedSize,
-      thumbnail: imageUrl,
+      image: product.thumbnail,
     });
     CleverTap.recordEvent('Add To Cart', {
       id: product.id,
@@ -115,6 +118,7 @@ export default function ProductScreen({navigation, route}) {
       price: product.price,
       color: selectedColor.name,
       size: selectedSize,
+      iamge: product.thumbnail,
     });
     
    

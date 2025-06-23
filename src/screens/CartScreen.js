@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import ArrowLeft from '../../src/assets/ArrowLeft.svg';
+import ProductCard from '../components/ProductCard';
 
 export default function CartScreen({ navigation }) {
   const { cartItems, incrementItem, decrementItem, removeItem } = useCart();
@@ -28,7 +29,9 @@ export default function CartScreen({ navigation }) {
       name: item.title,
       price: item.price,
       quantity: item.quantity,
+      thumbnail: item.thumbnail,
     }));
+    console.log(items);
 
     CleverTap.recordChargedEvent(
       {
