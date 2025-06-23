@@ -25,23 +25,12 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>CleverTapAccountID</key>
-	<string>R57-875-KK7Z
-	
-
-R57-875-KK7Z
-
-R57-875-KK7Z
-
-R57-875-KK7Z
-
-R57-875-KK7Z
-
-R57-875-KK7Z</string>
+	<string>TEST-K9K-Z94-R46Z</string>
 	<key>CleverTapToken</key>
-	<string>5ab-a52</string>
+	<string>TEST-4c1-3c3</string>
 	<key>UIAppFonts</key>
 	<array>
-  		<string>Ionicons.ttf</string>
+		<string>Ionicons.ttf</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

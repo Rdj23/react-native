@@ -79,6 +79,7 @@ public class MainApplication extends CleverTapApplication implements ReactApplic
         // CleverTap lifecycle registration (if using CleverTap)
         ActivityLifecycleCallback.register(this);
         CleverTapAPI.setDebugLevel(CleverTapAPI.LogLevel.VERBOSE);
+        
 
         // Required to enable rich Push Templates
         CleverTapAPI.setNotificationHandler((NotificationHandler)new PushTemplateNotificationHandler());

@@ -23,6 +23,7 @@ public class MainActivity extends ReactActivity {
 
         // ✅ Notify CleverTap for deep-link
         CleverTapRnAPI.setInitialUri(getIntent().getData());
+        
     }
 
     @Override
