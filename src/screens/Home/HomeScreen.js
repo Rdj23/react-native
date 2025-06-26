@@ -246,7 +246,11 @@ export default function HomeScreen({navigation}) {
             />
           ) : (
             <Image
+<<<<<<< HEAD
               source={require('../../assets/Banner_main.jpeg')}
+=======
+              source={require('../../assets/Banner1.png')}
+>>>>>>> 998e10f626c0e501c5ab730dfcd0c6eaeed3e309
               style={styles.banner}
               resizeMode="cover"
             />
