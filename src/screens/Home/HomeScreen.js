@@ -246,7 +246,7 @@ export default function HomeScreen({navigation}) {
             />
           ) : (
             <Image
-              source={require('../../assets/Banner1.png')}
+              source={require('../../assets/Banner_main.jpeg')}
               style={styles.banner}
               resizeMode="cover"
             />

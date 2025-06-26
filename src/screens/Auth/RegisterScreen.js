@@ -10,7 +10,7 @@ export default function RegisterScreen({ navigation }) {
   const handleRegister = async () => {
     try {
       await registerWithEmail(email, password, name);
-      navigation.replace('Login');
+      navigation.navigate('Login');
     } catch (error) {
       console.error(error);
       alert(error.message);
