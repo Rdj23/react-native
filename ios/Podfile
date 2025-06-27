@@ -1,39 +1,32 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
+# Podfile
+
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, '13.0'
+platform :ios, '15.1' # or 12.0 if you need older support
+
 prepare_react_native_project!
 
-# 👇 Remove this — it forces dynamic framework linking (which breaks clevertap-react-native)
-# use_frameworks!
+# ✅ Static linking (solves UIKit/module issues in Xcode 15+)
+use_frameworks! :linkage => :static
 
 target 'ecommerceApp' do
   config = use_native_modules!
-
-  # ✅ React Native + Static Framework patch for CleverTap
-  pre_install do |installer|
-    installer.pod_targets.each do |pod|
-      if pod.name.eql?('clevertap-react-native')
-        def pod.build_type; Pod::BuildType.static_library; end
-      end
-    end
-  end
-
-  # Firebase
-  pod 'Firebase/Core'
-  pod 'Firebase/Auth'
-
-  pod 'clevertap-react-native', :path => '../node_modules/clevertap-react-native'
-  pod 'RNSVG', :path => '../node_modules/react-native-svg'
+  $RNFirebaseAsStaticFramework = true # ✅ Enable Firebase static linking
 
   use_react_native!(
     :path => config[:reactNativePath],
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # ✅ Modular headers for Firebase deps
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'Firebase', :modular_headers => true
 
   post_install do |installer|
     react_native_post_install(
@@ -41,13 +34,5 @@ target 'ecommerceApp' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
-
-    installer.pods_project.targets.each do |target|
-      if target.name == 'clevertap-react-native'
-        target.build_configurations.each do |config|
-          config.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)', '-framework', 'CoreLocation']
-        end
-      end
-    end
   end
 end
