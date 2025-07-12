@@ -27,6 +27,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - CTNotificationContent (1.1.0)
+  - CTNotificationService (0.1.7)
   - DoubleConversion (1.1.6)
   - fast_float (6.1.4)
   - FBLazyVector (0.79.3)
@@ -2234,7 +2236,10 @@ PODS:
 
 DEPENDENCIES:
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
+  - CleverTap-iOS-SDK
   - clevertap-react-native (from `../node_modules/clevertap-react-native`)
+  - CTNotificationContent
+  - CTNotificationService
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -2323,6 +2328,9 @@ DEPENDENCIES:
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
+  https://github.com/CocoaPods/Specs.git:
+    - CTNotificationContent
+    - CTNotificationService
   trunk:
     - CleverTap-iOS-SDK
     - Firebase
@@ -2517,6 +2525,8 @@ SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   CleverTap-iOS-SDK: 8ee6dc5c6f3952f39c837e64ba24f0053f0d6196
   clevertap-react-native: 566876a3a8cf16fa6dd587e9a153cf65db75e8fd
+  CTNotificationContent: c1cab33a5a5bbbc4e4b743acccdfe8605cedd205
+  CTNotificationService: 3eceea27cf0e28a2e14267bb706013363eb620c6
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
   FBLazyVector: a62a7a5760929b6265e27bc01ab7598dde93ebd3
@@ -2618,6 +2628,6 @@ SPEC CHECKSUMS:
   Toast: 1f5ea13423a1e6674c4abdac5be53587ae481c4e
   Yoga: b2eaabf17044cd4273a661b14eb83f9fd2c90491
 
-PODFILE CHECKSUM: d2dac77bb3426f183c33aedf65b2c19cb9518121
+PODFILE CHECKSUM: 3611ab01e49181f9cf6ddfc249568734f8241160
 
 COCOAPODS: 1.16.2

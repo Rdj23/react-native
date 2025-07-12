@@ -1,5 +1,6 @@
 # Podfile
 
+source 'https://github.com/CocoaPods/Specs.git'
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -12,6 +13,16 @@ prepare_react_native_project!
 
 # ✅ Static linking (solves UIKit/module issues in Xcode 15+)
 use_frameworks! :linkage => :static
+
+
+target 'NotificationContentDemo' do
+  pod 'CTNotificationContent'
+end
+ 
+target 'NotificationCT' do
+  pod 'CTNotificationService'
+  pod 'CleverTap-iOS-SDK'
+end
 
 target 'ecommerceApp' do
   config = use_native_modules!

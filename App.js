@@ -17,11 +17,11 @@ import DrawerNavigator from './src/navigation/DrawerNavigator';
 
 export default function App() {
 
-   // 2️⃣ Fire your trigger event
-    CleverTap.recordEvent('HomeScreen Launched');
+
   //App Inbox
 
   useEffect(() => {
+   
     CleverTap.initializeInbox();
 
   }, []); 
@@ -30,9 +30,9 @@ export default function App() {
   useEffect(() => {
     const initPush = async () => {
       // ✅ Android 13+ requires runtime permission
-      if (Platform.OS === 'android' && Platform.Version >= 33) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      if (Platform.OS === 'android' && Platform.Version >= 33) {  
+        const granted = await PermissionsAndroid.request( //Declares a constant variable to store the permission result
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,  //PermissionsAndroid is a React Native method
         );
 
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
@@ -44,7 +44,7 @@ export default function App() {
 
       // ✅ Create notification channel (required for Android)
       CleverTap.createNotificationChannel(
-        'Rohan25', // Channel ID
+        'Rohan25', // Channel ID this needs to be setup in the CleverTap dashboard.
         'React-project', // Channel Name
         'Testing', // Description
         5, // Importance (max)
