@@ -1,25 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import {
-  DrawerContentScrollView,
-  DrawerItem,
-} from '@react-navigation/drawer';
+import {View, Text, StyleSheet} from 'react-native';
+import {DrawerContentScrollView, DrawerItem} from '@react-navigation/drawer';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { useUser } from '../context/UserContext';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
+import {useUser} from '../context/UserContext';
+import {useCart} from '../context/CartContext';
+import {useWishlist} from '../context/WishlistContext';
 
-export default function CustomDrawerContent({ navigation }) {
-  const { user } = useUser();
-  const { totalQuantity } = useCart();
-  const { wishlist } = useWishlist();
+export default function CustomDrawerContent({navigation}) {
+  const {user, logout} = useUser();
+  const safeUser = user || {};
+  const {totalQuantity} = useCart();
+  const {wishlist} = useWishlist();
 
   const goToTab = (tabName, nestedScreen = null) => {
     navigation.closeDrawer();
     navigation.navigate('MainTabs', {
       screen: tabName,
-      ...(nestedScreen ? { params: { screen: nestedScreen } } : {}),
+      ...(nestedScreen ? {params: {screen: nestedScreen}} : {}),
     });
   };
 
@@ -27,55 +25,64 @@ export default function CustomDrawerContent({ navigation }) {
     <DrawerContentScrollView contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons name="person-circle" size={64} color="#30241F" />
-        <Text style={styles.name}>{user.name || 'Your Name'}</Text>
-        <Text style={styles.email}>{user.email || 'example@email.com'}</Text>
+        <Text style={styles.name}>{user?.name || 'Your Name'}</Text>
+        <Text style={styles.email}>{user?.email || 'example@email.com'}</Text>
       </View>
 
       {/* Drawer Items */}
       <View style={styles.menu}>
         <DrawerItem
           label="Home"
-          icon={({ color, size }) => (
+          icon={({color, size}) => (
             <Ionicons name="home-outline" size={size} color={color} />
           )}
           onPress={() => goToTab('Home')}
         />
         <DrawerItem
           label="Search"
-          icon={({ color, size }) => (
+          icon={({color, size}) => (
             <Ionicons name="search-outline" size={size} color={color} />
           )}
           onPress={() => goToTab('Search')}
         />
         <DrawerItem
           label={`Cart${totalQuantity > 0 ? ` (${totalQuantity})` : ''}`}
-          icon={({ color, size }) => (
+          icon={({color, size}) => (
             <Ionicons name="cart-outline" size={size} color={color} />
           )}
           onPress={() => goToTab('Cart')}
         />
         <DrawerItem
           label={`Wishlist${wishlist.length ? ` (${wishlist.length})` : ''}`}
-          icon={({ color, size }) => (
+          icon={({color, size}) => (
             <Ionicons name="heart-outline" size={size} color={color} />
           )}
-          onPress={() => goToTab('Profile', 'Wishlist')}
+          onPress={() => goToTab('Wishlist')}
         />
         <DrawerItem
           label="Profile"
-          icon={({ color, size }) => (
+          icon={({color, size}) => (
             <Ionicons name="person-outline" size={size} color={color} />
           )}
           onPress={() => goToTab('Profile')}
         />
       </View>
+
+      <DrawerItem
+        label="Logout"
+        icon={({color, size}) => (
+          <Ionicons name="log-out-outline" size={size} color={color} />
+        )}
+        onPress={async () => {
+          await logout(); // ✅ Clears login state
+        }}
+      />
     </DrawerContentScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {flex: 1},
   header: {
     alignItems: 'center',
     paddingVertical: 32,

@@ -1495,7 +1495,7 @@ PODS:
     - React-jsiexecutor
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
-  - react-native-safe-area-context (5.4.1):
+  - react-native-safe-area-context (5.5.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1510,8 +1510,8 @@ PODS:
     - React-hermes
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.4.1)
-    - react-native-safe-area-context/fabric (= 5.4.1)
+    - react-native-safe-area-context/common (= 5.5.2)
+    - react-native-safe-area-context/fabric (= 5.5.2)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1521,7 +1521,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/common (5.4.1):
+  - react-native-safe-area-context/common (5.5.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1545,7 +1545,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-safe-area-context/fabric (5.4.1):
+  - react-native-safe-area-context/fabric (5.5.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2329,10 +2329,9 @@ DEPENDENCIES:
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
+    - CleverTap-iOS-SDK
     - CTNotificationContent
     - CTNotificationService
-  trunk:
-    - CleverTap-iOS-SDK
     - Firebase
     - FirebaseAnalytics
     - FirebaseAppCheckInterop
@@ -2580,7 +2579,7 @@ SPEC CHECKSUMS:
   React-logger: 44e070aefe084568c02b544b9d7d436703be1a47
   React-Mapbuffer: ed1f528261013e46790379cc6727b8005e169a67
   React-microtasksnativemodule: da563fd4cb7ecc23f67b5f15b92dfe94a9791e2d
-  react-native-safe-area-context: f2e97b088ae5f3078f1ad03f51a44bd84f479053
+  react-native-safe-area-context: 106c19bea39450152d5f77832adde6c1981c481a
   react-native-simple-toast: 5f0622a7ba49ee553513f8f2f9b0ff077e265f41
   React-NativeModulesApple: c761e39d8bb17a074530cb637ec6fe4460fac3af
   React-oscompat: f26aa2a4adc84c34212ab12c07988fe19e9cf16a

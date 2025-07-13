@@ -6,13 +6,15 @@ import HomeStack from './HomeStack';
 import SearchStack from './SearchStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import WishlistScreen from '../screens/WishlistScreen';
 
 import {useCart} from '../context/CartContext';
+
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
-   const { totalQuantity } = useCart(); 
+  const {totalQuantity} = useCart();
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -32,6 +34,9 @@ export default function MainTabs() {
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
+              break;
+            case 'Wishlist':
+              iconName = focused ? 'heart-circle' : 'heart-circle-outline'  
               break;
             default:
               iconName = 'help-circle-outline';
@@ -66,7 +71,10 @@ export default function MainTabs() {
           },
         }}
       />
+      <Tab.Screen name="Wishlist" component={WishlistScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
+
+      
     </Tab.Navigator>
   );
 }

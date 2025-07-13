@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import CleverTap from 'clevertap-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   SafeAreaView,
   View,
@@ -25,12 +26,12 @@ export default function ProfileScreen({navigation}) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || '');
   const [error, setError] = useState('');
 
-  const [preferences, setPreferences] = useState({
-    whatsapp: false,
-    push: true,
-    sms: false,
-    email: true,
-  });
+ const [preferences, setPreferences] = useState(user.preferences || {
+  whatsapp: false,
+  push: true,
+  sms: false,
+  email: true,
+});
 
   const isPhoneValid = /^[6-9]\d{9}$/.test(phone);
   const isEmailValid = /\S+@\S+\.\S+/.test(email);
@@ -54,40 +55,42 @@ export default function ProfileScreen({navigation}) {
 
     CleverTap.profileSet(cleverTapProfileUpdate);
   };
+  const handleSave = async () => {
+  if (!isEmailValid) {
+    setError('Valid email required');
+    return;
+  }
 
-  const handleSave = () => {
-    if (!isEmailValid) {
-      setError('Valid email required');
-      return;
-    }
+  setError('');
+  const formattedPhone = phone ? `+91${phone}` : '';
 
-    setError('');
-    const formattedPhone = phone ? `+91${phone}` : '';
-
-    setUser({
-      ...user,
-      name,
-      email,
-      phone: formattedPhone,
-      avatarUrl,
-      preferences,
-    });
-
-    CleverTap.profileSet({
-      Name: name,
-      Email: email,
-      Phone: formattedPhone,
-
-      'MSG-whatsapp': preferences.whatsapp,
-      'MSG-push': preferences.push,
-      'MSG-sms': preferences.sms,
-      'MSG-email': preferences.email,
-    });
-
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    }
+  const updatedUser = {
+    name,
+    email,
+    phone: formattedPhone,
+    avatarUrl,
+    preferences,
   };
+
+  setUser(updatedUser);
+
+  await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+
+  CleverTap.profileSet({
+    Name: name,
+    Email: email,
+    Phone: formattedPhone,
+    'MSG-whatsapp': preferences.whatsapp,
+    'MSG-push': preferences.push,
+    'MSG-sms': preferences.sms,
+    'MSG-email': preferences.email,
+  });
+
+  if (navigation.canGoBack()) {
+    navigation.goBack();
+  }
+};
+
 
   return (
     <SafeAreaView style={styles.container}>

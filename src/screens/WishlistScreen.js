@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import {useWishlist} from '../context/WishlistContext';
 import {useCart} from '../context/CartContext';
-import ArrowLeft from '../../resources/icons/ArrowLeft.svg';
+import ArrowLeft from '../../src/assets/ArrowLeft.svg';
 
 
 
@@ -21,18 +21,6 @@ export default function WishlistScreen({navigation}) {
     useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // <TouchableOpacity
-  //   style={styles.qtyBtn}
-  //   onPress={() => {
-  //     if (cartEntry.quantity === 1) {
-  //       removeItem(cartEntry);
-  //     } else {
-  //       decrementItem(cartEntry);
-  //     }
-  //   }}>
-  //   <Text style={styles.qtySign}>–</Text>
-  // </TouchableOpacity>;
 
   // Fetch product details for all items in wishlist
   useEffect(() => {

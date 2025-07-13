@@ -51,7 +51,7 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
           UIApplication.shared.registerForRemoteNotifications()
         }
       } else {
-        print("❌ Push permission not granted: \(error?.localizedDescription ?? "No error")")
+        print("Push permission not granted: \(error?.localizedDescription ?? "No error")")
       }
     }
   }
@@ -64,21 +64,21 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
   }
 
   override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-    print("❌ Failed to register for remote notifications: \(error.localizedDescription)")
+    print("Failed to register for remote notifications: \(error.localizedDescription)")
   }
 
   // MARK: - Push Notification Handling
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               didReceive response: UNNotificationResponse,
                               withCompletionHandler completionHandler: @escaping () -> Void) {
-    print("📩 Did receive notification response: \(response.notification.request.content.userInfo)")
+    print("Did receive notification response: \(response.notification.request.content.userInfo)")
     completionHandler()
   }
 
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    print("📩 Will present notification: \(notification.request.content.userInfo)")
+    print("Will present notification: \(notification.request.content.userInfo)")
     CleverTap.sharedInstance()?.recordNotificationViewedEvent(withData: notification.request.content.userInfo)
     completionHandler([.badge, .sound, .alert])
   }
@@ -86,13 +86,13 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
   override func application(_ application: UIApplication,
                             didReceiveRemoteNotification userInfo: [AnyHashable : Any],
                             fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-    print("📩 Received remote notification: \(userInfo)")
+    print("Received remote notification: \(userInfo)")
     completionHandler(.noData)
   }
 
   // Optional custom extras
   func pushNotificationTapped(withCustomExtras customExtras: [AnyHashable : Any]!) {
-    print("📩 Push tapped with extras: \(String(describing: customExtras))")
+    print("Push tapped with extras: \(String(describing: customExtras))")
   }
 
   // MARK: - React Native Bundle

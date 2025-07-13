@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { loginWithEmail } from '../../services/firebaseAuth';
-import { useUser } from '../../context/UserContext'; // ✅
+import { useUser } from '../../context/UserContext'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ navigation }) {
   const { login } = useUser(); // ✅
@@ -12,12 +13,21 @@ export default function LoginScreen({ navigation }) {
     try {
       const userData = await loginWithEmail(email, password);
 
+      const existingPrefs = await AsyncStorage.getItem('user');
+      const prefs = existingPrefs ? JSON.parse(existingPrefs).preferences : {};
+
       // Instead of navigation.replace, update context state
       login({
-        name: userData.displayName || '',
-        email: userData.email,
-      
-        Identity : userData.email,
+      name: userData.displayName || '',
+      email: userData.email,
+      phone: userData.phoneNumber || '',
+      avatarUrl: '',
+      preferences: prefs || {
+        whatsapp: false,
+        push: true,
+        sms: false,
+        email: true,
+      },
         
         
       });

@@ -18,102 +18,72 @@ import {
 import auth from '@react-native-firebase/auth';
 import CategoryTabs from '../../components/CategoryTabs';
 import CleverTap from 'clevertap-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import MenuIcon from '../../assets/Menu.svg';
 import InboxIcon from '../../components/InboxIcon';
+
 
 const {width} = Dimensions.get('window');
 const CARD_W = (width - 48) / 3;
 
 const SECTION_CONFIG = {
   men: [
-    {
-      key: 'feature',
-      label: 'Feature Products',
-      categories: ['mens-shirts', 'mens-watches', 'mens-shoes'],
-    },
     {key: 'mens-shirts', label: 'Shirts', categories: ['mens-shirts']},
-    {key: 'tops', label: 'T-Shirts', categories: ['tops']},
     {key: 'mens-watches', label: 'Watches', categories: ['mens-watches']},
     {key: 'mens-shoes', label: 'Shoes', categories: ['mens-shoes']},
   ],
   women: [
-    {
-      key: 'feature',
-      label: 'Feature Products',
-      categories: [
-        'womens-dresses',
-        'womens-watches',
-        'womens-shoes',
-        'womens-jewellery',
-      ],
-    },
     {key: 'womens-dresses', label: 'Dresses', categories: ['womens-dresses']},
-    {key: 'tops', label: 'T-Shirts', categories: ['tops']},
+    {key: 'tops', label: 'Tops', categories: ['tops']},
+    {key: 'womens-bags', label: 'Womens Bag', categories: ['womens-bags']},
     {key: 'womens-shoes', label: 'Shoes', categories: ['womens-shoes']},
-    {
-      key: 'womens-jewellery',
-      label: 'Jewellery',
-      categories: ['womens-jewellery'],
-    },
+    {key: 'womens-jewellery', label: 'Jewellery', categories: ['womens-jewellery']},
+    {key: 'womens-watches', label: 'Women watches', categories: ['womens-watches']},
   ],
   accessories: [
     {key: 'feature', label: 'Feature Products', categories: ['sunglasses']},
-    {key: 'sunglasses', label: 'Sunglasses', categories: ['sunglasses']},
+    {key: 'laptops', label: 'Laptops', categories: ['laptops']},
     {key: 'smartphones', label: 'Phones', categories: ['smartphones']},
-    {key: 'tops', label: 'T-Shirts', categories: ['tops']},
-    {key: 'mens-watches', label: 'Watches', categories: ['mens-watches']},
+    {key: 'tablets', label: 'Tablets', categories: ['tablets']},
+    {key: 'mobile-accessories', label: 'Mobile Accessories', categories: ['mobile-accessories']},
+    {key: 'kitchen-accessories', label: 'Kitchen Accessories', categories: ['kitchen-accessories']},
   ],
   beauty: [
-    {
-      key: 'feature',
-      label: 'Feature Products',
-      categories: ['skincare', 'fragrances'],
-    },
-    {key: 'skincare', label: 'Skincare', categories: ['skincare']},
+    {key: 'feature', label: 'Feature Products', categories: ['beauty']},
+    {key: 'skincare', label: 'Skincare', categories: ['skin-care']},
     {key: 'fragrances', label: 'Fragrances', categories: ['fragrances']},
     {key: 'lighting', label: 'Lighting', categories: ['lighting']},
-    {
-      key: 'home-decoration',
-      label: 'Home Decor',
-      categories: ['home-decoration'],
-    },
   ],
 };
 
 export default function HomeScreen({navigation}) {
+  const insets = useSafeAreaInsets();
   const [selectedTab, setSelectedTab] = useState('men');
   const [sectionsData, setSectionsData] = useState({});
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
 
-  // --- Native Display state ---
-  const [displayUnits, setDisplayUnits] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // helper: pull urls out of each unit
-  const extractUrls = units =>
-    units.reduce((acc, u) => {
-      (u.content || []).forEach(c => {
-        if (c.media?.url) acc.push(c.media.url);
-      });
-      return acc;
-    }, []);
-
-  // 1) listen for fresh units  2) fire HomeScreen Launched  3) grab any cached
   useEffect(() => {
     const listener = DeviceEventEmitter.addListener(
       'CleverTapDisplayUnitsLoaded',
       units => {
         if (Array.isArray(units) && units.length) {
-          setDisplayUnits(units);
-          setImageUrls(extractUrls(units));
+          const parsed = units.flatMap(unit =>
+            (unit.content || []).map(content => ({
+              wzrk_id: unit.wzrk_id,
+              image: content.media?.url,
+              action: content.action,
+            }))
+          );
+          setBanners(parsed);
+          setImageUrls(parsed.map(b => b.image));
 
-          // 🔥 viewed the first unit immediately:
-          const firstId = units[0].wzrk_id;
-          CleverTap.pushDisplayUnitViewedEventForID(firstId);
-          console.log('Viewed unit id:', firstId);
+          CleverTap.pushDisplayUnitViewedEventForID(units[0].wzrk_id);
         }
       },
     );
@@ -122,33 +92,37 @@ export default function HomeScreen({navigation}) {
 
     CleverTap.getAllDisplayUnits((_, cached) => {
       if (Array.isArray(cached) && cached.length) {
-        setDisplayUnits(cached);
-        setImageUrls(extractUrls(cached));
+        const parsed = cached.flatMap(unit =>
+          (unit.content || []).map(content => ({
+            wzrk_id: unit.wzrk_id,
+            image: content.media?.url,
+            action: content.action,
+          }))
+        );
+        setBanners(parsed);
+        setImageUrls(parsed.map(b => b.image));
 
-        const firstId = cached[0].wzrk_id;
-        CleverTap.pushDisplayUnitViewedEventForID(firstId);
-        console.log('Viewed (cached) unit id:', firstId);
+        CleverTap.pushDisplayUnitViewedEventForID(cached[0].wzrk_id);
       }
     });
 
     return () => listener.remove();
   }, []);
 
-  // auto‐cycle every 3s
+  // auto-cycle carousel every 5 seconds
   useEffect(() => {
     if (imageUrls.length < 2) return;
-    const iv = setInterval(() => {
-      setActiveIndex(i => (i + 1) % imageUrls.length);
-    }, 3000);
-    return () => clearInterval(iv);
+    const interval = setInterval(() => {
+      setActiveIndex(prev => (prev + 1) % imageUrls.length);
+    }, 5000);
+    return () => clearInterval(interval);
   }, [imageUrls]);
 
-  // Firebase user
   useEffect(() => {
     setUser(auth().currentUser);
   }, []);
 
-  // fetch your product sections
+  // fetch product sections from dummyjson.com
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -177,9 +151,7 @@ export default function HomeScreen({navigation}) {
       .catch(console.error)
       .finally(() => alive && setLoading(false));
 
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [selectedTab]);
 
   const renderCard = ({item}) => (
@@ -188,9 +160,7 @@ export default function HomeScreen({navigation}) {
       activeOpacity={0.7}
       onPress={() => navigation.navigate('Product', {product: item})}>
       <Image source={{uri: item.thumbnail}} style={styles.image} />
-      <Text style={styles.name} numberOfLines={1}>
-        {item.title}
-      </Text>
+      <Text style={styles.name} numberOfLines={1}>{item.title}</Text>
       <Text style={styles.price}>₹{item.price.toFixed(2)}</Text>
     </TouchableOpacity>
   );
@@ -200,7 +170,8 @@ export default function HomeScreen({navigation}) {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+
         <TouchableOpacity onPress={() => navigation.getParent()?.openDrawer()}>
           <MenuIcon width={24} height={24} />
         </TouchableOpacity>
@@ -208,34 +179,40 @@ export default function HomeScreen({navigation}) {
         <InboxIcon style={styles.iconWrapper} />
       </View>
 
-      {/* Welcome */}
+      {/* Welcome Message */}
       <Text style={styles.header}>
-        {user?.displayName
-          ? `Welcome, ${user.displayName}`
-          : 'Welcome to CT-ecom'}
+        {user?.displayName ? `Welcome, ${user.displayName}` : 'Welcome to Shop'}
       </Text>
 
-      {/* Tabs */}
+      {/* Gender Tabs */}
       <CategoryTabs selectedKey={selectedTab} onSelect={setSelectedTab} />
 
-      {/* Content */}
+      {/* Content Scroll */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 🎯 Native Display Banner */}
+        {/* 🔥 Native Display Carousel */}
         <TouchableOpacity
           style={styles.bannerWrap}
           activeOpacity={0.8}
           onPress={() => {
-            const unit = displayUnits[activeIndex];
-            const unitId = unit?.wzrk_id;
+            const currentBanner = banners[activeIndex];
+            const unitId = currentBanner?.wzrk_id;
             if (!unitId) return;
 
-            // 🔥 clicked
             CleverTap.pushDisplayUnitClickedEventForID(unitId);
-            console.log('Clicked unit id:', unitId);
 
-            // open the click-through URL if any
-            if (unit.action?.url?.android) {
-              Linking.openURL(unit.action.url.android);
+            const url =
+              currentBanner?.action?.url?.android?.text ||
+              currentBanner?.action?.url?.ios?.text ||
+              currentBanner?.action?.url?.text;
+
+            console.log('👉 Clicked banner URL:', url);
+
+            if (url) {
+              Linking.openURL(url)
+                .then(() => console.log('✅ Opened URL:', url))
+                .catch(err => console.error('❌ Failed to open URL:', err));
+            } else {
+              alert('❌ No valid URL found');
             }
           }}>
           {imageUrls.length > 0 ? (
@@ -247,15 +224,27 @@ export default function HomeScreen({navigation}) {
           ) : (
             <Image
               source={require('../../assets/Banner_main.jpeg')}
-              // source={require('../../assets/Banner1.png')}
               style={styles.banner}
               resizeMode="cover"
             />
           )}
           <Text style={styles.bannerText}>Autumn Collection 2022</Text>
+
+          {/* Dots */}
+          <View style={styles.dotContainer}>
+            {imageUrls.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  activeIndex === index ? styles.activeDot : null,
+                ]}
+              />
+            ))}
+          </View>
         </TouchableOpacity>
 
-        {/* Products */}
+        {/* Product Sections */}
         {loading ? (
           <ActivityIndicator style={{margin: 24}} />
         ) : (
@@ -310,6 +299,23 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  dotContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ccc',
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#30241F',
+    width: 10,
+    height: 10,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -3,7 +3,6 @@ import React, {useEffect, useState} from 'react';
 import {Platform, PermissionsAndroid} from 'react-native'; // ✅ FIXED
 
 import messaging from '@react-native-firebase/messaging'; // ✅ FIXED
-import CleverTap from 'clevertap-react-native'; // ✅ FIXED
 
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -12,27 +11,24 @@ import {CartProvider} from './src/context/CartContext';
 import {WishlistProvider} from './src/context/WishlistContext';
 import {UserProvider} from './src/context/UserContext';
 import DrawerNavigator from './src/navigation/DrawerNavigator';
+import CleverTap from 'clevertap-react-native';
 
 
 
 export default function App() {
-
-
   //App Inbox
 
   useEffect(() => {
-   
     CleverTap.initializeInbox();
-
-  }, []); 
+  }, []);
 
   //Push
   useEffect(() => {
     const initPush = async () => {
       // ✅ Android 13+ requires runtime permission
-      if (Platform.OS === 'android' && Platform.Version >= 33) {  
-        const granted = await PermissionsAndroid.request( //Declares a constant variable to store the permission result
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,  //PermissionsAndroid is a React Native method
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
         );
 
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
@@ -44,7 +40,7 @@ export default function App() {
 
       // ✅ Create notification channel (required for Android)
       CleverTap.createNotificationChannel(
-        'Rohan25', // Channel ID this needs to be setup in the CleverTap dashboard.
+        'Rohan25', // Channel ID
         'React-project', // Channel Name
         'Testing', // Description
         5, // Importance (max)
@@ -80,7 +76,7 @@ export default function App() {
     initPush();
   }, []);
 
-  // In-App listeners
+  // In-App callbacks - will check later
   useEffect(() => {
     CleverTap.addListener(CleverTap.CleverTapInAppNotificationShowed, evt => {
       console.log('In-App shown:', evt);
@@ -89,16 +85,13 @@ export default function App() {
       CleverTap.CleverTapInAppNotificationButtonTapped,
       evt => {
         console.log('In-App button clicked:', evt);
-        CleverTap.recordEvent('InApp Clicked', {
-          id: evt.id,
-          button: evt.buttonText,
-        });
       },
     );
     CleverTap.addListener(
       CleverTap.CleverTapInAppNotificationDismissed,
       evt => {
         console.log('In-App dismissed:', evt);
+        CleverTap.recordEvent("Notification dismissed")
       },
     );
   }, []);

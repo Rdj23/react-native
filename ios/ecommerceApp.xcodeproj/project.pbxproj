@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -79,13 +79,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0943CEF52E21A33A00755407 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 0943CEE92E21A33A00755407 /* NotificationCT */;
-		};
 		099057C42E0DD1AB004671C3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -95,19 +88,12 @@
 			);
 			target = 13B07F861A680F5B00A75B9A /* ecommerceApp */;
 		};
-		09FA8EB12E224186000678ED /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 09FA8E9E2E224185000678ED /* NotificationContentDemo */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0943CEEB2E21A33A00755407 /* NotificationCT */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0943CEF52E21A33A00755407 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = NotificationCT; sourceTree = "<group>"; };
+		0943CEEB2E21A33A00755407 /* NotificationCT */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NotificationCT; sourceTree = "<group>"; };
 		09D036C02DF77CED00CCF58D /* resources */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (099057C42E0DD1AB004671C3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = resources; sourceTree = "<group>"; };
-		09FA8EA42E224186000678ED /* NotificationContentDemo */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (09FA8EB12E224186000678ED /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = NotificationContentDemo; sourceTree = "<group>"; };
+		09FA8EA42E224186000678ED /* NotificationContentDemo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NotificationContentDemo; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -224,7 +210,6 @@
 				E322AB4D730C9D4C442D74DA /* [CP] Check Pods Manifest.lock */,
 				0943CEE62E21A33A00755407 /* Sources */,
 				0943CEE72E21A33A00755407 /* Frameworks */,
-				0943CEE82E21A33A00755407 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -245,7 +230,6 @@
 				2CF418CE38005C1560DDC5ED /* [CP] Check Pods Manifest.lock */,
 				09FA8E9B2E224185000678ED /* Sources */,
 				09FA8E9C2E224185000678ED /* Frameworks */,
-				09FA8E9D2E224185000678ED /* Resources */,
 			);
 			buildRules = (
 			);
@@ -270,7 +254,6 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				0943CEF62E21A33A00755407 /* Embed Foundation Extensions */,
 				EA9EE4C92F32410288201FA1 /* [CP] Embed Pods Frameworks */,
-				8112EE70CE77BF3CC2550619 /* [CP] Copy Pods Resources */,
 				0A056C473FFB90B06D98FABB /* [CP-User] [RNFB] Core Configuration */,
 			);
 			buildRules = (
@@ -328,20 +311,6 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		0943CEE82E21A33A00755407 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		09FA8E9D2E224185000678ED /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		13B07F8E1A680F5B00A75B9A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -426,23 +395,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		8112EE70CE77BF3CC2550619 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		E322AB4D730C9D4C442D74DA /* [CP] Check Pods Manifest.lock */ = {

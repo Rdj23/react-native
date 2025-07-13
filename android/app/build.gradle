@@ -85,7 +85,7 @@ dependencies {
 
     // ─── CleverTap Android SDK (optional if you need direct Android‐only features) ──
     implementation "com.clevertap.android:push-templates:1.3.0" //push template
-    implementation 'com.clevertap.android:clevertap-android-sdk:7.4.0'
+    implementation 'com.clevertap.android:clevertap-android-sdk:7.5.0'
 
     // ─── Firebase (for FCM, if you use push) ───────────────────────────────────
     implementation 'com.google.firebase:firebase-messaging:23.0.6'

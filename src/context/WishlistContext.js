@@ -1,7 +1,6 @@
 // src/context/WishlistContext.js
 import React, { createContext, useReducer, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useUser } from './UserContext';
 
 const WishlistContext = createContext();
@@ -12,9 +11,7 @@ function wishlistReducer(state, action) {
       return action.payload || [];
     case 'TOGGLE': {
       const id = action.payload;
-      return state.includes(id)
-        ? state.filter(x => x !== id)
-        : [ ...state, id ];
+      return state.includes(id) ? state.filter(x => x !== id) : [...state, id];
     }
     default:
       return state;
@@ -22,20 +19,25 @@ function wishlistReducer(state, action) {
 }
 
 export function WishlistProvider({ children }) {
-  const { user } = useUser();
-  const key       = `wishlist_${user.email}`;
+  const { user } = useUser();               // ✅ safe (inside UserProvider)
+  const key = user?.email ? `wishlist_${user.email}` : null;
 
   const [state, dispatch] = useReducer(wishlistReducer, []);
 
-  // load on mount / user change
+  /* 📥  LOAD whenever user (key) changes */
   useEffect(() => {
+    if (!key) {          // no logged‑in user yet
+      dispatch({ type: 'LOAD', payload: [] });
+      return;
+    }
     AsyncStorage.getItem(key)
       .then(json => dispatch({ type: 'LOAD', payload: JSON.parse(json) }))
-      .catch(() => {});
+      .catch(() => dispatch({ type: 'LOAD', payload: [] }));
   }, [key]);
 
-  // persist on change
+  /* 💾  SAVE to AsyncStorage whenever wishlist changes */
   useEffect(() => {
+    if (!key) return;    // skip if not logged in
     AsyncStorage.setItem(key, JSON.stringify(state)).catch(() => {});
   }, [key, state]);
 
@@ -43,13 +45,13 @@ export function WishlistProvider({ children }) {
   const isWishlisted   = id => state.includes(id);
 
   return (
-    <WishlistContext.Provider value={{ wishlist: state, toggleWishlist, isWishlisted }}>
+    <WishlistContext.Provider
+      value={{ wishlist: state, toggleWishlist, isWishlisted }}>
       {children}
     </WishlistContext.Provider>
   );
 }
 
-// hook for easy consumption
 export function useWishlist() {
   return useContext(WishlistContext);
 }

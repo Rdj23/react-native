@@ -10,8 +10,7 @@ const Stack = createStackNavigator();
 export default function SearchStack() {
   return (
     <Stack.Navigator>
-      {/* turn off the navigator header so you only see the
-          in-component back button & search bar */}
+    
       <Stack.Screen
         name="SearchMain"
         component={SearchScreen}

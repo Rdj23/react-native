@@ -1,10 +1,13 @@
-import React, {createContext, useContext, useReducer} from 'react';
+import React, {createContext, useContext, useReducer, useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 1) Create context
 const CartContext = createContext();
 
 function cartReducer(state, action) {
   switch (action.type) {
+    case 'SET':
+      return action.payload;
+
     case 'ADD': {
       const item = action.payload;
       const existing = state.find(
@@ -51,15 +54,36 @@ function cartReducer(state, action) {
 export function CartProvider({children}) {
   const [cartItems, dispatch] = useReducer(cartReducer, []);
 
+  // ✅ Load cart from AsyncStorage on mount
+  useEffect(() => {
+    const loadCart = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('cart');
+        if (stored) {
+          dispatch({type: 'SET', payload: JSON.parse(stored)});
+        }
+      } catch (e) {
+        console.warn('❌ Failed to load cart from storage:', e);
+      }
+    };
+    loadCart();
+  }, []);
+
+  // ✅ Save cart to AsyncStorage whenever it changes
+  useEffect(() => {
+    AsyncStorage.setItem('cart', JSON.stringify(cartItems)).catch(e =>
+      console.warn('❌ Failed to save cart:', e),
+    );
+  }, [cartItems]);
+
   const addToCart = item => dispatch({type: 'ADD', payload: item});
   const incrementItem = variant =>
     dispatch({type: 'INCREMENT', payload: variant});
   const decrementItem = variant =>
     dispatch({type: 'DECREMENT', payload: variant});
+  const removeItem = variant => dispatch({type: 'REMOVE', payload: variant});
 
   const totalQuantity = cartItems.reduce((sum, x) => sum + x.quantity, 0);
-  const removeItem = variant => dispatch({ type: 'REMOVE', payload: variant });
-
 
   return (
     <CartContext.Provider
@@ -76,7 +100,6 @@ export function CartProvider({children}) {
   );
 }
 
-// 2) Custom hook for use in components
 export function useCart() {
   return useContext(CartContext);
 }
