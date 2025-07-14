@@ -1,39 +1,31 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { loginWithEmail } from '../../services/firebaseAuth';
-import { useUser } from '../../context/UserContext'; 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from '../../context/UserContext'; // ✅
 
 export default function LoginScreen({ navigation }) {
   const { login } = useUser(); // ✅
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
- const handleLogin = async () => {
-  try {
-    const userData = await loginWithEmail(email, password);
+  const handleLogin = async () => {
+    try {
+      const userData = await loginWithEmail(email, password);
 
-    login(userData); // from UserContext
-
-    // 🔥 Also update CleverTap
-    CleverTap.onUserLogin({
-      Name: userData.name,
-      Email: userData.email,
-      Identity: userData.email,
-      Phone: userData.phone,
-      'MSG-email': userData.preferences.email,
-      'MSG-push': userData.preferences.push,
-      'MSG-sms': userData.preferences.sms,
-      'MSG-whatsapp': userData.preferences.whatsapp,
-    });
-
-    navigation.replace('MainApp');
-
-  } catch (err) {
-    Alert.alert('Login failed', err.message);
-  }
-};
-
+      // Instead of navigation.replace, update context state
+      login({
+        name: userData.displayName || '',
+        email: userData.email,
+      
+        Identity : userData.email,
+        
+        
+      });
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
   return (
     <View style={styles.container}>
       {/* Static image icon (optional) */}

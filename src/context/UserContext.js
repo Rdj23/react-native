@@ -5,23 +5,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(null);     
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [ready, setReady] = useState(false); // NEW
+  const [user, setUser] = useState(null);   //to manage global state of the user around the application. 
+  const [isLoggedIn, setIsLoggedIn] = useState(false); //check if the user is logged in or not and then decide to show the app or auth screens.
+  const [ready, setReady] = useState(false); //to avoid login screen for split of second , the RN component rendered before async finish.
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const json = await AsyncStorage.getItem('user');
+        const json = await AsyncStorage.getItem('user');  //ceheck if there is any save user in the storage.
         if (json) {
           const savedUser = JSON.parse(json);
           setUser(savedUser);
           setIsLoggedIn(true);
         }
       } catch (e) {
-        console.warn('⚠️ Failed to load user from storage', e);
+        console.warn('Failed to load user from storage', e);
       } finally {
-        setReady(true); // ✅ done loading
+        setReady(true); //  done loading proceed for UI loading
       }
     };
 
@@ -31,7 +31,7 @@ export function UserProvider({ children }) {
   const login = async (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
-    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    await AsyncStorage.setItem('user', JSON.stringify(userData)); //vvimp if the user kills the app it will keep the state do not need to login again
   };
 
   const logout = async () => {
@@ -48,10 +48,10 @@ export function UserProvider({ children }) {
       },
     });
     setIsLoggedIn(false);
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('user'); //clear user data and delete the user from the storage
   };
 
-  // ✅ Load user from AsyncStorage on mount
+  
   useEffect(() => {
     const restoreUser = async () => {
       try {

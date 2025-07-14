@@ -1,6 +1,6 @@
 import auth from '@react-native-firebase/auth';
 import CleverTap from 'clevertap-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export const updateCleverTapProfile = (user) => {
   if (!user) return;
@@ -36,31 +36,13 @@ export const registerWithEmail = async (email, password, name) => {
 export const loginWithEmail = async (email, password) => {
   try {
     const userCredential = await auth().signInWithEmailAndPassword(email, password);
-    const user = userCredential.user;
 
-    // 🔁 Check if preferences or profile data exists
-    const savedData = await AsyncStorage.getItem('user');
-    let restoredData = savedData ? JSON.parse(savedData) : null;
+    // CleverTap integration
+    updateCleverTapProfile(userCredential.user);
 
-    const finalUserData = {
-      name: user.displayName || '',
-      email: user.email,
-      phone: restoredData?.phone || '',
-      avatarUrl: restoredData?.avatarUrl || '',
-      preferences: restoredData?.preferences || {
-        whatsapp: false,
-        push: true,
-        sms: false,
-        email: true,
-      },
-    };
-
-    // 👇 Sync to context
-    return finalUserData;
-
+    return userCredential.user;
   } catch (error) {
     throw error;
   }
 };
-
 
