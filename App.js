@@ -69,12 +69,14 @@ export default function App() {
         event => {
           console.log('Notification clicked:', event);
           // handle navigation, deep links, etc.
+          
         },
       );
     };
 
     initPush();
   }, []);
+
 
   // In-App callbacks - will check later
   useEffect(() => {

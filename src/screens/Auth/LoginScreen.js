@@ -9,33 +9,31 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = async () => {
-    try {
-      const userData = await loginWithEmail(email, password);
+ const handleLogin = async () => {
+  try {
+    const userData = await loginWithEmail(email, password);
 
-      const existingPrefs = await AsyncStorage.getItem('user');
-      const prefs = existingPrefs ? JSON.parse(existingPrefs).preferences : {};
+    login(userData); // from UserContext
 
-      // Instead of navigation.replace, update context state
-      login({
-      name: userData.displayName || '',
-      email: userData.email,
-      phone: userData.phoneNumber || '',
-      avatarUrl: '',
-      preferences: prefs || {
-        whatsapp: false,
-        push: true,
-        sms: false,
-        email: true,
-      },
-        
-        
-      });
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    }
-  };
+    // 🔥 Also update CleverTap
+    CleverTap.onUserLogin({
+      Name: userData.name,
+      Email: userData.email,
+      Identity: userData.email,
+      Phone: userData.phone,
+      'MSG-email': userData.preferences.email,
+      'MSG-push': userData.preferences.push,
+      'MSG-sms': userData.preferences.sms,
+      'MSG-whatsapp': userData.preferences.whatsapp,
+    });
+
+    navigation.replace('MainApp');
+
+  } catch (err) {
+    Alert.alert('Login failed', err.message);
+  }
+};
+
   return (
     <View style={styles.container}>
       {/* Static image icon (optional) */}
