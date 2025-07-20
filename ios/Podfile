@@ -7,7 +7,7 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
-platform :ios, '15.1' # or 12.0 if you need older support
+platform :ios, '17.0' # or 12.0 if you need older support
 
 prepare_react_native_project!
 
@@ -30,6 +30,7 @@ target 'ecommerceApp' do
 
   use_react_native!(
     :path => config[:reactNativePath],
+    :hermes_enabled => true, 
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
