@@ -1,8 +1,7 @@
 // App.js
 import React, {useEffect, useState} from 'react';
-import {Platform, PermissionsAndroid} from 'react-native'; // ✅ FIXED
-
-import messaging from '@react-native-firebase/messaging'; // ✅ FIXED
+import {Platform, PermissionsAndroid} from 'react-native'; 
+import messaging from '@react-native-firebase/messaging'; 
 
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -25,7 +24,7 @@ export default function App() {
   //Push
   useEffect(() => {
     const initPush = async () => {
-      // ✅ Android 13+ requires runtime permission
+      // Android 13+ requires runtime permission
       if (Platform.OS === 'android' && Platform.Version >= 33) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
@@ -38,7 +37,7 @@ export default function App() {
         }
       }
 
-      // ✅ Create notification channel (required for Android)
+      //  Create notification channel (required for Android)
       CleverTap.createNotificationChannel(
         'Rohan25', // Channel ID
         'React-project', // Channel Name
@@ -47,23 +46,9 @@ export default function App() {
         true, // Show badge
       );
 
-      // ✅ Request FCM/iOS permission
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      
 
-      if (enabled) {
-        CleverTap.recordEvent('Push Permission Authorized');
-
-        const fcmToken = await messaging().getToken();
-        CleverTap.setFCMPushToken(fcmToken); // ✅ Register with CleverTap
-        console.log('Firebase Token: ' + fcmToken);
-      } else {
-        CleverTap.recordEvent('Push Permission Not Authorized');
-      }
-
-      // ✅ Optional: Notification click listener
+      
       CleverTap.addListener(
         CleverTap.CleverTapPushNotificationClicked,
         event => {
