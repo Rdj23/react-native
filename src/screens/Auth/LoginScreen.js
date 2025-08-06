@@ -12,7 +12,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const userData = await loginWithEmail(email, password);
 
-      // Instead of navigation.replace, update context state
+     
       login({
         name: userData.displayName || '',
         email: userData.email,

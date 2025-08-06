@@ -1,7 +1,7 @@
 // App.js
 import React, {useEffect, useState} from 'react';
-import {Platform, PermissionsAndroid} from 'react-native'; 
-import messaging from '@react-native-firebase/messaging'; 
+import {Platform, PermissionsAndroid} from 'react-native';
+import messaging from '@react-native-firebase/messaging';
 
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -11,8 +11,6 @@ import {WishlistProvider} from './src/context/WishlistContext';
 import {UserProvider} from './src/context/UserContext';
 import DrawerNavigator from './src/navigation/DrawerNavigator';
 import CleverTap from 'clevertap-react-native';
-
-
 
 export default function App() {
   //App Inbox
@@ -42,26 +40,39 @@ export default function App() {
         'Rohan25', // Channel ID
         'React-project', // Channel Name
         'Testing', // Description
-        5, // Importance (max)
+        5, // Importance (IMPORTANCE_MAX)
         true, // Show badge
       );
 
-      
+      CleverTap.createNotificationChannelWithSound(
+        'test', // Channel ID
+        'rohan', // Channel Name
+        'Sound', // Description
+        5, // Importance (IMPORTANCE_MAX)
+        true, // Show badge
+        'coinswin.mp3', // Custom sound file
+      );
 
-      
+      //   CleverTap.createNotificationChannel(
+      //   'Sound', // Channel ID
+      //   'Sound', // Channel Name
+      //   'Sound', // Description
+      //   5, // Importance (IMPORTANCE_MAX)
+      //   true, // Show badge
+      //   'coinswin.mp3', // Custom sound file
+      // );
+
       CleverTap.addListener(
         CleverTap.CleverTapPushNotificationClicked,
         event => {
           console.log('Notification clicked:', event);
           // handle navigation, deep links, etc.
-          
         },
       );
     };
 
     initPush();
   }, []);
-
 
   // In-App callbacks - will check later
   useEffect(() => {
@@ -78,7 +89,7 @@ export default function App() {
       CleverTap.CleverTapInAppNotificationDismissed,
       evt => {
         console.log('In-App dismissed:', evt);
-        CleverTap.recordEvent("Notification dismissed")
+        CleverTap.recordEvent('Notification dismissed');
       },
     );
   }, []);

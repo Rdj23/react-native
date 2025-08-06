@@ -68,7 +68,16 @@ export default function HomeScreen({navigation}) {
   const [imageUrls, setImageUrls] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
+
+  //CleverTapDisplayUnitsLoaded -> Listener for display unit load events
+  //getAllDisplayUnits -> Fetch all available display units
+  //pushDisplayUnitViewedEventForID -> Track display unit impression
+  //pushDisplayUnitClickedEventForID -> Track display unit click 
+
   useEffect(() => {
+
+    CleverTap.recordEvent('HomeScreen Launched');
+
     const listener = DeviceEventEmitter.addListener(
       'CleverTapDisplayUnitsLoaded',
       units => {
@@ -87,9 +96,7 @@ export default function HomeScreen({navigation}) {
         }
       },
     );
-
-    CleverTap.recordEvent('HomeScreen Launched');
-
+    
     CleverTap.getAllDisplayUnits((_, cached) => {
       if (Array.isArray(cached) && cached.length) {
         const parsed = cached.flatMap(unit =>
@@ -161,7 +168,7 @@ export default function HomeScreen({navigation}) {
       onPress={() => navigation.navigate('Product', {product: item})}>
       <Image source={{uri: item.thumbnail}} style={styles.image} />
       <Text style={styles.name} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.price}>₹{item.price.toFixed(2)}</Text>
+      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
     </TouchableOpacity>
   );
 
@@ -189,7 +196,7 @@ export default function HomeScreen({navigation}) {
 
       {/* Content Scroll */}
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* 🔥 Native Display Carousel */}
+        {/*  Native Display Carousel */}
         <TouchableOpacity
           style={styles.bannerWrap}
           activeOpacity={0.8}
@@ -209,10 +216,10 @@ export default function HomeScreen({navigation}) {
 
             if (url) {
               Linking.openURL(url)
-                .then(() => console.log('✅ Opened URL:', url))
-                .catch(err => console.error('❌ Failed to open URL:', err));
+                .then(() => console.log('Opened URL:', url))
+                .catch(err => console.error('Failed to open URL:', err));
             } else {
-              alert('❌ No valid URL found');
+              alert('No valid URL found');
             }
           }}>
           {imageUrls.length > 0 ? (
@@ -228,7 +235,7 @@ export default function HomeScreen({navigation}) {
               resizeMode="cover"
             />
           )}
-          <Text style={styles.bannerText}>Autumn Collection 2022</Text>
+          <Text style={styles.bannerText}>Autumn Collection 2025</Text>
 
           {/* Dots */}
           <View style={styles.dotContainer}>
@@ -252,9 +259,7 @@ export default function HomeScreen({navigation}) {
             <View key={sec.key}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{sec.label}</Text>
-                <TouchableOpacity>
-                  <Text style={styles.showAll}>See all</Text>
-                </TouchableOpacity>
+                
               </View>
               <FlatList
                 data={sectionsData[sec.key] || []}

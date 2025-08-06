@@ -84,6 +84,9 @@ public class MainApplication extends CleverTapApplication implements ReactApplic
         // Required to enable rich Push Templates
         CleverTapAPI.setNotificationHandler((NotificationHandler)new PushTemplateNotificationHandler());
 
+        // Creating a Notification Channel With Sound Support
+        // CleverTapAPI.createNotificationChannel(getApplicationContext(),"Sound","Sound","Sound",NotificationManager.IMPORTANCE_MAX,true,"coinswin.mp3");
+
         // Enable CleverTap push rendering in foreground
         // CleverTapAPI.getDefaultInstance(this).enablePushNotificationRendering(true);
     }

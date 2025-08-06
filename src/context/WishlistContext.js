@@ -19,12 +19,12 @@ function wishlistReducer(state, action) {
 }
 
 export function WishlistProvider({ children }) {
-  const { user } = useUser();               // ✅ safe (inside UserProvider)
+  const { user } = useUser();               // safe (inside UserProvider)
   const key = user?.email ? `wishlist_${user.email}` : null;
 
   const [state, dispatch] = useReducer(wishlistReducer, []);
 
-  /* 📥  LOAD whenever user (key) changes */
+  /*  LOAD whenever user (key) changes */
   useEffect(() => {
     if (!key) {          // no logged‑in user yet
       dispatch({ type: 'LOAD', payload: [] });
@@ -35,7 +35,7 @@ export function WishlistProvider({ children }) {
       .catch(() => dispatch({ type: 'LOAD', payload: [] }));
   }, [key]);
 
-  /* 💾  SAVE to AsyncStorage whenever wishlist changes */
+  /*  SAVE to AsyncStorage whenever wishlist changes */
   useEffect(() => {
     if (!key) return;    // skip if not logged in
     AsyncStorage.setItem(key, JSON.stringify(state)).catch(() => {});

@@ -28,7 +28,7 @@ export default function ProfileScreen({navigation}) {
 
  const [preferences, setPreferences] = useState(user.preferences || {
   whatsapp: false,
-  push: true,
+  push: true, //cbi
   sms: false,
   email: true,
 });
