@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 8 },
   overviewFull: { color: '#333', lineHeight: 20 },
 
+  
   castCard: { width: 100, marginRight: 12, alignItems: 'center' },
   castImg: { width: 82, height: 110, borderRadius: 6, backgroundColor: '#f0f0f0' },
   castName: { marginTop: 6, fontSize: 12, fontWeight: '700', color: '#111' },
@@ -165,3 +166,4 @@ const styles = StyleSheet.create({
   openBtn: { padding: 10, backgroundColor: '#222', alignItems: 'center' },
   openBtnText: { color: '#fff', fontWeight: '700' },
 });
+
