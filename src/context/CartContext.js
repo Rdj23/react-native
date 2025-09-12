@@ -63,7 +63,7 @@ export function CartProvider({children}) {
           dispatch({type: 'SET', payload: JSON.parse(stored)});
         }
       } catch (e) {
-        console.warn('❌ Failed to load cart from storage:', e);
+        console.warn('Failed to load cart from storage:', e);
       }
     };
     loadCart();
@@ -72,7 +72,7 @@ export function CartProvider({children}) {
   // ✅ Save cart to AsyncStorage whenever it changes
   useEffect(() => {
     AsyncStorage.setItem('cart', JSON.stringify(cartItems)).catch(e =>
-      console.warn('❌ Failed to save cart:', e),
+      console.warn(' Failed to save cart:', e),
     );
   }, [cartItems]);
 

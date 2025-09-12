@@ -2,7 +2,7 @@
 import React, {useEffect, useState} from 'react';
 import {Platform, View, Pressable, Text} from 'react-native';
 import CleverTap from 'clevertap-react-native';
-import NotificationIcon from '../assets/Notification.svg';
+import NotificationIcon from '../../src/assets/notification.svg';
 import { useUser } from '../context/UserContext';
 
 export default function InboxIcon({style}) {
@@ -18,7 +18,7 @@ export default function InboxIcon({style}) {
         if (!err) setUnreadCount(count);
       });
     } catch (e) {
-      console.warn('🔴 InboxIcon.refreshBadge error:', e);
+      console.warn('InboxIcon.refreshBadge error:', e);
     }
   };
 
@@ -33,7 +33,7 @@ export default function InboxIcon({style}) {
         try {
           refreshBadge();
         } catch (e) {
-          console.warn('🔴 InboxIcon.init handler:', e);
+          console.warn('InboxIcon.init handler:', e);
         }
       },
     );
@@ -43,7 +43,7 @@ export default function InboxIcon({style}) {
         try {
           refreshBadge();
         } catch (e) {
-          console.warn('🔴 InboxIcon.update handler:', e);
+          console.warn('InboxIcon.update handler:', e);
         }
       },
     );
@@ -60,7 +60,7 @@ export default function InboxIcon({style}) {
           refreshBadge();
           CleverTap.pushInboxNotificationClickedEventForId(msg.messageId);
         } catch (e) {
-          console.warn('🔴 InboxIcon.tap handler error:', e);
+          console.warn('InboxIcon.tap handler error:', e);
         }
       },
     );
@@ -76,12 +76,12 @@ export default function InboxIcon({style}) {
   const openInbox = () => {
     try {
       CleverTap.showInbox({
-        tabs: ['All'],
+        // tabs: ['Promotion','Gifts'],
         navBarTitle: 'My Inbox',
         // …any styling overrides…
       });
     } catch (e) {
-      console.warn('🔴 InboxIcon.openInbox error:', e);
+      console.warn('InboxIcon.openInbox error:', e);
     }
   };
 

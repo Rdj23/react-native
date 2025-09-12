@@ -52,24 +52,24 @@ export function UserProvider({ children }) {
   };
 
   
-  useEffect(() => {
-    const restoreUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          setUser(parsed);
-          setIsLoggedIn(true);
-        }
-      } catch (e) {
-        console.warn('🔴 Failed to load user from AsyncStorage:', e);
-      } finally {
-        setReady(true);
-      }
-    };
+  // useEffect(() => {
+  //   const restoreUser = async () => {
+  //     try {
+  //       const storedUser = await AsyncStorage.getItem('user');
+  //       if (storedUser) {
+  //         const parsed = JSON.parse(storedUser);
+  //         setUser(parsed);
+  //         setIsLoggedIn(true);
+  //       }
+  //     } catch (e) {
+  //       console.warn('Failed to load user from AsyncStorage:', e);
+  //     } finally {
+  //       setReady(true);
+  //     }
+  //   };
 
-    restoreUser();
-  }, []);
+  //   restoreUser();
+  // }, []);
 
   return (
     <UserContext.Provider value={{ user, setUser, isLoggedIn, login, logout, ready }}>

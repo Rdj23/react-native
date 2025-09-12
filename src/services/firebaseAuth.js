@@ -13,7 +13,10 @@ export const updateCleverTapProfile = (user) => {
      'Identity': user.email,
 
     'MSG-email': true,  
-    'UserType': 'newUser'
+    'UserType': 'newUser',
+
+    'birthday' : new Date('1995-12-22T06:35:31'), 
+    'nwUpdate' : 2026
 
   });
 };

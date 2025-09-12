@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { loginWithEmail } from '../../services/firebaseAuth';
-import { useUser } from '../../context/UserContext'; // ✅
+import { useUser } from '../../context/UserContext'; 
 
 export default function LoginScreen({ navigation }) {
-  const { login } = useUser(); // ✅
+  const { login } = useUser(); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -12,7 +12,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const userData = await loginWithEmail(email, password);
 
-      // Instead of navigation.replace, update context state
+     
       login({
         name: userData.displayName || '',
         email: userData.email,

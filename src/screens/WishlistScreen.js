@@ -17,8 +17,7 @@ import ArrowLeft from '../../src/assets/ArrowLeft.svg';
 
 export default function WishlistScreen({navigation}) {
   const {wishlist} = useWishlist();
-  const {cartItems, addToCart, incrementItem, decrementItem, removeItem} =
-    useCart();
+  const {cartItems, addToCart, incrementItem, decrementItem, removeItem} = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 

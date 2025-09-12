@@ -28,8 +28,7 @@ export default function CartScreen({ navigation }) {
       id: item.id,
       name: item.title,
       price: item.price,
-      quantity: item.quantity,
-      thumbnail: item.thumbnail,
+      quantity: item.quantity
     }));
     console.log(items);
 
@@ -41,11 +40,6 @@ export default function CartScreen({ navigation }) {
       },
       items
     );
-
-    Toast.show('Order placed! (Charged event sent)', {
-      duration: Toast.durations.SHORT,
-      position: Toast.positions.BOTTOM,
-    });
 
     // Optionally clear cart or navigate
     cartItems.forEach(item => removeItem(item));
