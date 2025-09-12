@@ -2,7 +2,8 @@
 import React, {useEffect, useState} from 'react';
 import {Platform, View, Pressable, Text} from 'react-native';
 import CleverTap from 'clevertap-react-native';
-import NotificationIcon from '../../src/assets/notification.svg';
+
+import NotificationIcon from '../assets/Notification.svg';
 import { useUser } from '../context/UserContext';
 
 export default function InboxIcon({style}) {
