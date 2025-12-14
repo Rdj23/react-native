@@ -255,6 +255,7 @@
 				0943CEF62E21A33A00755407 /* Embed Foundation Extensions */,
 				0A056C473FFB90B06D98FABB /* [CP-User] [RNFB] Core Configuration */,
 				BDB368783E39FDF1D6538882 /* [CP] Embed Pods Frameworks */,
+				C018949C62FE4490EB1DCD8D /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -412,6 +413,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		C018949C62FE4490EB1DCD8D /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		E322AB4D730C9D4C442D74DA /* [CP] Check Pods Manifest.lock */ = {
