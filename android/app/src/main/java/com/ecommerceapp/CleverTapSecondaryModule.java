@@ -4,11 +4,17 @@ import android.util.Log;
 
 import com.clevertap.android.sdk.CleverTapAPI;
 import com.clevertap.android.sdk.CleverTapInstanceConfig;
+import com.clevertap.android.sdk.product_config.CTProductConfigListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableArray;
+
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +61,36 @@ public class CleverTapSecondaryModule extends ReactContextBaseJavaModule {
 
             secondaryInstance = CleverTapAPI.instanceWithConfig(context, config);
             Log.d(TAG, "Secondary CleverTap instance initialized successfully");
+
+            // Set Product Config listener — auto-activate on fetch, emit event on activate
+            secondaryInstance.setCTProductConfigListener(new CTProductConfigListener() {
+                @Override
+                public void onInit() {
+                    Log.d(TAG, "Product config INITIALIZED");
+                }
+
+                @Override
+                public void onFetched() {
+                    Log.d(TAG, "Product config FETCHED from server — activating now...");
+                    secondaryInstance.productConfig().activate();
+                }
+
+                @Override
+                public void onActivated() {
+                    Log.d(TAG, "Product config ACTIVATED — values ready to read");
+                    // Emit event to JS so useRemoteConfig can re-read values
+                    try {
+                        ReactApplicationContext ctx = getReactApplicationContext();
+                        if (ctx != null && ctx.hasActiveReactInstance()) {
+                            ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                                .emit("CleverTapSecondaryProductConfigActivated", null);
+                            Log.d(TAG, "Emitted CleverTapSecondaryProductConfigActivated to JS");
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "Failed to emit product config event to JS", e);
+                    }
+                }
+            });
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize secondary CleverTap instance", e);
         }
@@ -149,5 +185,163 @@ public class CleverTapSecondaryModule extends ReactContextBaseJavaModule {
 
         secondaryInstance.pushChargedEvent(details, itemList);
         Log.d(TAG, "Charged event recorded on secondary instance");
+    }
+
+    // ─── Product Config (Product Experiences) ─────────────────────────────
+
+    /**
+     * Triggers a fetch of the latest Product Config values from Dashboard 2.
+     */
+    @ReactMethod
+    public void productConfigFetch() {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot fetch product config");
+            return;
+        }
+        secondaryInstance.productConfig().fetch();
+        Log.d(TAG, "Product config fetch triggered");
+    }
+
+    /**
+     * Activates the most recently fetched Product Config so values are readable.
+     */
+    @ReactMethod
+    public void productConfigActivate() {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot activate product config");
+            return;
+        }
+        secondaryInstance.productConfig().activate();
+        Log.d(TAG, "Product config activated");
+    }
+
+    /**
+     * Convenience: fetches AND activates in one call.
+     */
+    @ReactMethod
+    public void productConfigFetchAndActivate() {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized");
+            return;
+        }
+        secondaryInstance.productConfig().fetchAndActivate();
+        Log.d(TAG, "Product config fetch and activate triggered");
+    }
+
+    /**
+     * Sets the minimum interval between successive fetches.
+     *
+     * @param seconds Minimum fetch interval in seconds
+     */
+    @ReactMethod
+    public void productConfigSetMinimumFetchIntervalInSeconds(double seconds) {
+        if (secondaryInstance == null) return;
+        secondaryInstance.productConfig().setMinimumFetchIntervalInSeconds((long) seconds);
+        Log.d(TAG, "Product config minimum fetch interval set to " + seconds + "s");
+    }
+
+    /**
+     * Reads a boolean value from the activated Product Config.
+     *
+     * @param key     The variable key
+     * @param promise Resolves with the boolean value
+     */
+    @ReactMethod
+    public void productConfigGetBoolean(String key, Promise promise) {
+        if (secondaryInstance == null) {
+            promise.resolve(false);
+            return;
+        }
+        boolean value = secondaryInstance.productConfig().getBoolean(key);
+        promise.resolve(value);
+    }
+
+    /**
+     * Reads a long/number value from the activated Product Config.
+     *
+     * @param key     The variable key
+     * @param promise Resolves with the numeric value
+     */
+    @ReactMethod
+    public void productConfigGetLong(String key, Promise promise) {
+        if (secondaryInstance == null) {
+            promise.resolve(0.0);
+            return;
+        }
+        long value = secondaryInstance.productConfig().getLong(key);
+        promise.resolve((double) value);
+    }
+
+    /**
+     * Reads a string value from the activated Product Config.
+     *
+     * @param key     The variable key
+     * @param promise Resolves with the string value
+     */
+    @ReactMethod
+    public void productConfigGetString(String key, Promise promise) {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "getString(" + key + ") — instance null");
+            promise.resolve("");
+            return;
+        }
+        String value = secondaryInstance.productConfig().getString(key);
+        Log.d(TAG, "getString(" + key + ") = \"" + value + "\"");
+        promise.resolve(value);
+    }
+
+    /**
+     * Resets the Product Config cache so the next fetch pulls fresh values.
+     */
+    @ReactMethod
+    public void productConfigReset() {
+        if (secondaryInstance == null) return;
+        secondaryInstance.productConfig().reset();
+        Log.d(TAG, "Product config reset");
+    }
+
+    /**
+     * Debug: fetches, activates, then reads and logs all known keys.
+     * Call from JS to diagnose Product Config issues.
+     */
+    @ReactMethod
+    public void debugProductConfig(Promise promise) {
+        if (secondaryInstance == null) {
+            promise.resolve("ERROR: secondary instance is null");
+            return;
+        }
+
+        Log.d(TAG, "=== DEBUG PRODUCT CONFIG START ===");
+
+        // Try reading values directly (from whatever is currently activated)
+        String[] testKeys = {
+            "primary_color", "movie.primary_color",
+            "background_color", "movie.background_color",
+            "watch_cta_text", "movie.watch_cta_text",
+            "allow_free_trailers", "movie.allow_free_trailers",
+            "paywall_cta_text", "movie.paywall_cta_text",
+            "trailer_preview_duration", "movie.trailer_preview_duration"
+        };
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Product Config debug:\n");
+
+        for (String key : testKeys) {
+            String strVal = secondaryInstance.productConfig().getString(key);
+            boolean boolVal = secondaryInstance.productConfig().getBoolean(key);
+            long longVal = secondaryInstance.productConfig().getLong(key);
+            sb.append("  ").append(key).append(" → str=\"").append(strVal)
+              .append("\" bool=").append(boolVal)
+              .append(" long=").append(longVal).append("\n");
+            Log.d(TAG, "  " + key + " → str=\"" + strVal + "\" bool=" + boolVal + " long=" + longVal);
+        }
+
+        // Also log the last fetch time
+        long lastFetch = secondaryInstance.productConfig().getLastFetchTimeStampInMillis();
+        sb.append("  lastFetchTimestamp=").append(lastFetch).append(" (").append(new java.util.Date(lastFetch)).append(")\n");
+        Log.d(TAG, "  lastFetchTimestamp=" + lastFetch + " (" + new java.util.Date(lastFetch) + ")");
+
+        Log.d(TAG, "=== DEBUG PRODUCT CONFIG END ===");
+        promise.resolve(sb.toString());
     }
 }

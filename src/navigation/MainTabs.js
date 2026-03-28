@@ -7,11 +7,13 @@ import HomeStack from './HomeStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import {useMovieCart} from '../context/MovieCartContext';
+import {useTheme} from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   const {cartCount} = useMovieCart();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -28,16 +30,16 @@ export default function MainTabs() {
           }
           return <Ionicons name={iconName} size={22} color={color} />;
         },
-        tabBarActiveTintColor: '#5E35B1',
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: '#555',
         tabBarLabelStyle: {fontSize: 11, fontWeight: '600', marginTop: -2},
         tabBarStyle: {
           paddingTop: 8,
           paddingBottom: Math.max(insets.bottom, 8),
           height: 56 + Math.max(insets.bottom, 8),
-          backgroundColor: '#111114',
+          backgroundColor: colors.header,
           borderTopWidth: 1,
-          borderTopColor: '#1E1E22',
+          borderTopColor: colors.border,
           elevation: 0,
           shadowOpacity: 0,
         },
@@ -48,7 +50,7 @@ export default function MainTabs() {
         component={CartScreen}
         options={{
           tabBarBadge: cartCount > 0 ? cartCount : undefined,
-          tabBarBadgeStyle: {backgroundColor: '#5E35B1', color: '#FFF', fontSize: 10, fontWeight: '700', minWidth: 18, height: 18, borderRadius: 9, lineHeight: 18},
+          tabBarBadgeStyle: {backgroundColor: colors.primary, color: colors.ctaText, fontSize: 10, fontWeight: '700', minWidth: 18, height: 18, borderRadius: 9, lineHeight: 18},
         }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} />

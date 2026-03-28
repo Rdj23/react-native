@@ -7,7 +7,7 @@ import CleverTapSDK
  * default instance continues to use the primary dashboard.
  */
 @objc(CleverTapSecondary)
-class CleverTapSecondary: NSObject {
+class CleverTapSecondary: NSObject, CleverTapProductConfigDelegate {
 
   // Secondary dashboard credentials
   private static let accountId = "TEST-K9K-Z94-R46Z"
@@ -26,7 +26,35 @@ class CleverTapSecondary: NSObject {
                                          accountToken: CleverTapSecondary.accountToken)
     config.logLevel = .debug
     secondaryInstance = CleverTap.instance(with: config)
+    secondaryInstance?.productConfig().delegate = self
     NSLog("CleverTapSecondary: Secondary instance initialized successfully")
+  }
+
+  // MARK: - CleverTapProductConfigDelegate
+
+  /// Called when fetch completes — auto-activate
+  func ctProductConfigFetched() {
+    NSLog("CleverTapSecondary: Product config FETCHED — activating now...")
+    secondaryInstance?.productConfig().activate()
+  }
+
+  /// Called when activation completes — emit event to JS
+  func ctProductConfigActivated() {
+    NSLog("CleverTapSecondary: Product config ACTIVATED — values ready")
+    sendEvent(withName: "CleverTapSecondaryProductConfigActivated", body: nil)
+  }
+
+  /// Emit events to React Native
+  private func sendEvent(withName name: String, body: Any?) {
+    // Use the bridge to send events
+    if let bridge = RCTBridge.current() {
+      bridge.eventDispatcher()?.sendAppEvent(withName: name, body: body)
+    }
+  }
+
+  // MARK: - Event emitter support
+  @objc override func supportedEvents() -> [String] {
+    return ["CleverTapSecondaryProductConfigActivated"]
   }
 
   /// Required for React Native to run methods on the main queue
@@ -88,5 +116,81 @@ class CleverTapSecondary: NSObject {
     let itemList = items as? [[String: Any]] ?? []
     instance.recordChargedEvent(withDetails: details, andItems: itemList)
     NSLog("CleverTapSecondary: Charged event recorded on secondary instance")
+  }
+
+  // MARK: - Product Config (Product Experiences)
+
+  /// Triggers a fetch of the latest Product Config values from Dashboard 2.
+  @objc func productConfigFetch() {
+    guard let instance = secondaryInstance else {
+      NSLog("CleverTapSecondary: Instance not initialized, cannot fetch product config")
+      return
+    }
+    instance.productConfig().fetch()
+    NSLog("CleverTapSecondary: Product config fetch triggered")
+  }
+
+  /// Activates the most recently fetched Product Config so values are readable.
+  @objc func productConfigActivate() {
+    guard let instance = secondaryInstance else {
+      NSLog("CleverTapSecondary: Instance not initialized, cannot activate product config")
+      return
+    }
+    instance.productConfig().activate()
+    NSLog("CleverTapSecondary: Product config activated")
+  }
+
+  /// Convenience: fetches AND activates in one call.
+  @objc func productConfigFetchAndActivate() {
+    guard let instance = secondaryInstance else {
+      NSLog("CleverTapSecondary: Instance not initialized")
+      return
+    }
+    instance.productConfig().fetchAndActivate()
+    NSLog("CleverTapSecondary: Product config fetch and activate triggered")
+  }
+
+  /// Sets the minimum interval between successive fetches.
+  @objc func productConfigSetMinimumFetchIntervalInSeconds(_ seconds: Double) {
+    guard let instance = secondaryInstance else { return }
+    instance.productConfig().setMinimumFetchInterval(Int(seconds))
+    NSLog("CleverTapSecondary: Product config minimum fetch interval set to %f s", seconds)
+  }
+
+  /// Reads a boolean value from the activated Product Config.
+  @objc func productConfigGetBoolean(_ key: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard let instance = secondaryInstance else {
+      resolve(false)
+      return
+    }
+    let value = instance.productConfig().get(key)
+    resolve(value?.boolValue ?? false)
+  }
+
+  /// Reads a numeric value from the activated Product Config.
+  @objc func productConfigGetLong(_ key: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard let instance = secondaryInstance else {
+      resolve(0)
+      return
+    }
+    let value = instance.productConfig().get(key)
+    resolve(value?.numberValue ?? 0)
+  }
+
+  /// Reads a string value from the activated Product Config.
+  @objc func productConfigGetString(_ key: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard let instance = secondaryInstance else {
+      resolve("")
+      return
+    }
+    let value = instance.productConfig().get(key)
+    resolve(value?.stringValue ?? "")
+  }
+
+  /// Resets the Product Config cache so the next fetch pulls fresh values.
+  @objc func productConfigReset() {
+    guard let instance = secondaryInstance else { return }
+    instance.productConfig().reset()
+    NSLog("CleverTapSecondary: Product config reset")
   }
 }

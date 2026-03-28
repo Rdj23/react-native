@@ -45,6 +45,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import InboxIcon from '../../components/InboxIcon';
 import CleverTapSecondary from '../../services/CleverTapSecondary';
+import {useTheme} from '../../context/ThemeContext';
 import {
   fetchTrendingMovies,
   fetchTrendingTV,
@@ -68,6 +69,7 @@ const DEBOUNCE_MS = 400;
 
 export default function HomeScreen({navigation}) {
   const insets = useSafeAreaInsets();
+  const {colors, strings} = useTheme();
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all');
 
@@ -169,7 +171,7 @@ export default function HomeScreen({navigation}) {
   const showMovies = filter === 'all' || filter === 'movie';
   const showTV = filter === 'all' || filter === 'tv';
   const isSearchActive = query.trim().length >= 2;
-  const greeting = user?.displayName ? `Hey, ${user.displayName}` : 'Hey there';
+  const greeting = user?.displayName ? `Hey, ${user.displayName}` : strings.greeting;
 
   const featured = movies[0];
   const heroImg = featured ? BACKDROP(featured.backdrop_path) : null;
@@ -177,7 +179,7 @@ export default function HomeScreen({navigation}) {
   const heroSub = featured?.overview || '';
 
   return (
-    <View style={st.root}>
+    <View style={[st.root, {backgroundColor: colors.background}]}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ScrollView
@@ -194,18 +196,18 @@ export default function HomeScreen({navigation}) {
           )}
 
           {/* Smooth 5-layer gradient for seamless blend */}
-          <View style={[st.gradLayer, {top: 0, height: '20%', backgroundColor: 'rgba(13,13,13,0.05)'}]} />
-          <View style={[st.gradLayer, {top: '20%', height: '20%', backgroundColor: 'rgba(13,13,13,0.15)'}]} />
-          <View style={[st.gradLayer, {top: '40%', height: '20%', backgroundColor: 'rgba(13,13,13,0.4)'}]} />
-          <View style={[st.gradLayer, {top: '60%', height: '20%', backgroundColor: 'rgba(13,13,13,0.75)'}]} />
-          <View style={[st.gradLayer, {top: '80%', height: '20%', backgroundColor: 'rgba(13,13,13,0.95)'}]} />
+          <View style={[st.gradLayer, {top: 0, height: '20%', backgroundColor: colors.background + '0D'}]} />
+          <View style={[st.gradLayer, {top: '20%', height: '20%', backgroundColor: colors.background + '26'}]} />
+          <View style={[st.gradLayer, {top: '40%', height: '20%', backgroundColor: colors.background + '66'}]} />
+          <View style={[st.gradLayer, {top: '60%', height: '20%', backgroundColor: colors.background + 'BF'}]} />
+          <View style={[st.gradLayer, {top: '80%', height: '20%', backgroundColor: colors.background + 'F2'}]} />
 
           {/* Top bar */}
           <View style={[st.topBar, {paddingTop: insets.top + 6}]}>
             <TouchableOpacity style={st.topIcon} onPress={() => navigation.getParent()?.openDrawer()}>
-              <Ionicons name="menu" size={22} color="#FFF" />
+              <Ionicons name="menu" size={22} color={colors.text} />
             </TouchableOpacity>
-            <Text style={st.greeting} numberOfLines={1}>{greeting}</Text>
+            <Text style={[st.greeting, {color: colors.text}]} numberOfLines={1}>{greeting}</Text>
             <InboxIcon style={st.topIcon} />
           </View>
 
@@ -213,15 +215,15 @@ export default function HomeScreen({navigation}) {
           <View style={st.heroContent}>
             {heroTitle ? (
               <>
-                <Text style={st.heroTag}>FEATURED</Text>
-                <Text style={st.heroTitle} numberOfLines={1}>{heroTitle}</Text>
+                <Text style={[st.heroTag, {color: colors.accent}]}>{strings.heroTag}</Text>
+                <Text style={[st.heroTitle, {color: colors.text}]} numberOfLines={1}>{heroTitle}</Text>
                 <Text style={st.heroSub} numberOfLines={2}>{heroSub}</Text>
               </>
             ) : null}
             <View style={st.heroBtns}>
-              <TouchableOpacity style={st.watchBtn} activeOpacity={0.85} onPress={() => featured && openDetail(featured)}>
-                <Ionicons name="play" size={16} color="#FFF" />
-                <Text style={st.watchBtnText}>Watch Now</Text>
+              <TouchableOpacity style={[st.watchBtn, {backgroundColor: colors.primary}]} activeOpacity={0.85} onPress={() => featured && openDetail(featured)}>
+                <Ionicons name="play" size={16} color={colors.ctaText} />
+                <Text style={[st.watchBtnText, {color: colors.ctaText}]}>{strings.watchCta}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={st.infoBtn} activeOpacity={0.85} onPress={() => featured && openDetail(featured)}>
                 <Ionicons name="information-circle-outline" size={18} color="#FFF" />
@@ -238,7 +240,7 @@ export default function HomeScreen({navigation}) {
           <View style={st.searchBar}>
             <Ionicons name="search-outline" size={18} color="#555" />
             <TextInput
-              style={st.searchInput}
+              style={[st.searchInput, {color: colors.text}]}
               value={query}
               onChangeText={setQuery}
               placeholder="Search movies, TV series..."
@@ -253,9 +255,9 @@ export default function HomeScreen({navigation}) {
             )}
           </View>
           {isSearchActive && (
-            <View style={st.searchDrop}>
+            <View style={[st.searchDrop, {backgroundColor: colors.surface}]}>
               {searching ? (
-                <ActivityIndicator style={{padding: 16}} color="#5E35B1" />
+                <ActivityIndicator style={{padding: 16}} color={colors.primary} />
               ) : searchResults.length > 0 ? (
                 <FlatList
                   data={searchResults.slice(0, 6)}
@@ -276,7 +278,7 @@ export default function HomeScreen({navigation}) {
           {FILTERS.map(f => (
             <TouchableOpacity
               key={f.key}
-              style={[st.chip, filter === f.key && st.chipOn]}
+              style={[st.chip, filter === f.key && {backgroundColor: colors.primary, borderColor: colors.primary}]}
               onPress={() => setFilter(f.key)}>
               <Text style={[st.chipText, filter === f.key && st.chipTextOn]}>{f.label}</Text>
             </TouchableOpacity>
@@ -285,18 +287,18 @@ export default function HomeScreen({navigation}) {
 
         {/* Trending */}
         {loading ? (
-          <ActivityIndicator style={{marginTop: 40}} size="large" color="#5E35B1" />
+          <ActivityIndicator style={{marginTop: 40}} size="large" color={colors.primary} />
         ) : (
           <>
             {showMovies && movies.length > 0 && (
               <View style={st.section}>
-                <Text style={st.sectionTitle}>Trending Movies</Text>
+                <Text style={[st.sectionTitle, {color: colors.text}]}>{strings.trendingMovies}</Text>
                 <FlatList data={movies} keyExtractor={i => `m-${i.id}`} renderItem={renderCard} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.hList} />
               </View>
             )}
             {showTV && tvShows.length > 0 && (
               <View style={st.section}>
-                <Text style={st.sectionTitle}>Trending TV Series</Text>
+                <Text style={[st.sectionTitle, {color: colors.text}]}>{strings.trendingTv}</Text>
                 <FlatList data={tvShows} keyExtractor={i => `t-${i.id}`} renderItem={renderCard} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.hList} />
               </View>
             )}

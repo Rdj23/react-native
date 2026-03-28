@@ -23,6 +23,7 @@ import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import {UserProvider} from './src/context/UserContext';
 import {MovieCartProvider} from './src/context/MovieCartContext';
+import {ThemeProvider} from './src/context/ThemeContext';
 import DrawerNavigator from './src/navigation/DrawerNavigator';
 import CleverTap from 'clevertap-react-native';
 import {initialize as initInbox} from './src/services/InboxService';
@@ -129,10 +130,13 @@ export default function App() {
       <UserProvider>
         {/* MovieCartProvider — global cart state (items, total, add/remove) */}
         <MovieCartProvider>
-          <NavigationContainer>
-            {/* DrawerNavigator — root navigator; wraps MainTabs + drawer menu */}
-            <DrawerNavigator />
-          </NavigationContainer>
+          {/* ThemeProvider — dynamic colors/strings from CleverTap Dashboard 2 */}
+          <ThemeProvider>
+            <NavigationContainer>
+              {/* DrawerNavigator — root navigator; wraps MainTabs + drawer menu */}
+              <DrawerNavigator />
+            </NavigationContainer>
+          </ThemeProvider>
         </MovieCartProvider>
       </UserProvider>
     </GestureHandlerRootView>

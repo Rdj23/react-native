@@ -51,6 +51,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CleverTap from 'clevertap-react-native';
 import {useMovieCart} from '../context/MovieCartContext';
+import {useTheme} from '../context/ThemeContext';
 import {fetchTrendingMovies, fetchTrendingTV, POSTER, BACKDROP} from '../services/tmdb';
 
 const {width} = Dimensions.get('window');
@@ -59,6 +60,7 @@ const SIMILAR_POSTER_H = Math.round(SIMILAR_CARD_W * 1.5);
 
 export default function CartScreen({navigation}) {
   const insets = useSafeAreaInsets();
+  const {colors, strings} = useTheme();
   const {cartItems, removeFromCart, clearCart, totalAmount, cartCount} =
     useMovieCart();
   const [similar, setSimilar] = useState([]);
@@ -158,17 +160,17 @@ export default function CartScreen({navigation}) {
 
   // ─── Render cart item ──────────────────────────────────────────
   const renderCartItem = ({item, index}) => (
-    <View style={styles.cartItem}>
+    <View style={[styles.cartItem, {backgroundColor: colors.surface, borderColor: colors.border}]}>
       <Image source={{uri: item.posterPath}} style={styles.cartPoster} />
       <View style={styles.cartInfo}>
-        <Text style={styles.cartTitle} numberOfLines={2}>
+        <Text style={[styles.cartTitle, {color: colors.text}]} numberOfLines={2}>
           {item.title}
         </Text>
         <Text style={styles.cartType}>
           {(item.type || '').toUpperCase()}
           {item.releaseDate ? ` \u2022 ${item.releaseDate.slice(0, 4)}` : ''}
         </Text>
-        <Text style={styles.cartPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={[styles.cartPrice, {color: colors.primary}]}>${item.price.toFixed(2)}</Text>
       </View>
       <TouchableOpacity
         style={styles.removeBtn}
@@ -218,25 +220,25 @@ export default function CartScreen({navigation}) {
   // ─── Empty state ───────────────────────────────────────────────
   if (cartItems.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
-        <View style={[styles.headerBar, {paddingTop: insets.top + 12}]}>
+      <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+        <View style={[styles.headerBar, {paddingTop: insets.top + 12, backgroundColor: colors.header, borderBottomColor: colors.border}]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Cart</Text>
+          <Text style={[styles.headerTitle, {color: colors.text}]}>{strings.cartTitle}</Text>
           <View style={{width: 24}} />
         </View>
         <View style={styles.emptyContainer}>
-          <Ionicons name="cart-outline" size={80} color="#333" />
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
+          <Ionicons name="cart-outline" size={80} color={colors.border} />
+          <Text style={[styles.emptyTitle, {color: colors.text}]}>Your cart is empty</Text>
           <Text style={styles.emptySubtitle}>
             Browse movies and series to add them here
           </Text>
           <TouchableOpacity
-            style={styles.browseBtn}
+            style={[styles.browseBtn, {backgroundColor: colors.primary}]}
             onPress={() => navigation.navigate('HomeMain')}>
-            <Text style={styles.browseBtnText}>Browse Content</Text>
+            <Text style={[styles.browseBtnText, {color: colors.ctaText}]}>{strings.browseCta}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -244,15 +246,15 @@ export default function CartScreen({navigation}) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
+    <SafeAreaView style={[styles.container, {backgroundColor: colors.background}]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.header} />
       {/* ─── Header ──────────────────────────────────────── */}
-      <View style={[styles.headerBar, {paddingTop: insets.top + 12}]}>
+      <View style={[styles.headerBar, {paddingTop: insets.top + 12, backgroundColor: colors.header, borderBottomColor: colors.border}]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          My Cart ({cartCount})
+        <Text style={[styles.headerTitle, {color: colors.text}]}>
+          {strings.cartTitle} ({cartCount})
         </Text>
         <TouchableOpacity onPress={() => setClearModal(true)}>
           <Ionicons name="trash-outline" size={22} color="#E57373" />
@@ -267,8 +269,8 @@ export default function CartScreen({navigation}) {
         ListFooterComponent={
           <>
             {/* ─── Order Summary ───────────────────────── */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Order Summary</Text>
+            <View style={[styles.summaryCard, {backgroundColor: colors.surface, borderColor: colors.border}]}>
+              <Text style={[styles.summaryTitle, {color: colors.text}]}>Order Summary</Text>
               {cartItems.map((item, i) => (
                 <View key={`summary-${i}`} style={styles.summaryRow}>
                   <Text style={styles.summaryLabel} numberOfLines={1}>
@@ -280,9 +282,9 @@ export default function CartScreen({navigation}) {
                 </View>
               ))}
               <View style={styles.summaryDivider} />
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryTotal}>Total</Text>
-                <Text style={styles.summaryTotalValue}>
+              <View style={[styles.summaryRow]}>
+                <Text style={[styles.summaryTotal, {color: colors.text}]}>Total</Text>
+                <Text style={[styles.summaryTotalValue, {color: colors.primary}]}>
                   ${totalAmount.toFixed(2)}
                 </Text>
               </View>
@@ -290,12 +292,12 @@ export default function CartScreen({navigation}) {
 
             {/* ─── Buy Now ─────────────────────────────── */}
             <TouchableOpacity
-              style={styles.buyBtn}
+              style={[styles.buyBtn, {backgroundColor: colors.primary}]}
               activeOpacity={0.85}
               onPress={handleBuyNow}>
-              <Ionicons name="bag-check-outline" size={20} color="#FFF" />
-              <Text style={styles.buyBtnText}>
-                Buy Now — ${totalAmount.toFixed(2)}
+              <Ionicons name="bag-check-outline" size={20} color={colors.ctaText} />
+              <Text style={[styles.buyBtnText, {color: colors.ctaText}]}>
+                {strings.buyCta} — ${totalAmount.toFixed(2)}
               </Text>
             </TouchableOpacity>
 
@@ -322,22 +324,22 @@ export default function CartScreen({navigation}) {
       {/* ─── Purchase Success Modal ────────────────────── */}
       <Modal visible={successModal.visible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, {backgroundColor: colors.surface, borderColor: colors.border}]}>
             <View style={styles.modalIconCircle}>
-              <Ionicons name="checkmark-circle" size={40} color="#5E35B1" />
+              <Ionicons name="checkmark-circle" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.modalTitle}>Purchase Complete</Text>
+            <Text style={[styles.modalTitle, {color: colors.text}]}>Purchase Complete</Text>
             <Text style={styles.modalSub}>
               You bought {successModal.count} item{successModal.count > 1 ? 's' : ''} for ${successModal.amount.toFixed(2)}
             </Text>
             <TouchableOpacity
-              style={styles.modalBtn}
+              style={[styles.modalBtn, {backgroundColor: colors.primary}]}
               onPress={() => {
                 setSuccessModal({visible: false, count: 0, amount: 0});
                 clearCart();
                 navigation.navigate('HomeMain');
               }}>
-              <Text style={styles.modalBtnText}>Continue Browsing</Text>
+              <Text style={[styles.modalBtnText, {color: colors.ctaText}]}>Continue Browsing</Text>
             </TouchableOpacity>
           </View>
         </View>

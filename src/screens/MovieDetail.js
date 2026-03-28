@@ -5,42 +5,26 @@
  *  1. Backdrop + poster header with title and meta (type, release date, overview)
  *  2. Full overview text section
  *  3. Cast horizontal scroll — fetched from TMDB /credits endpoint
- *  4. Trailer thumbnail — YouTube thumbnail image + tap to open YouTube app
+ *  4. Trailer section — inline YouTube iframe player with paywall overlay
+ *     • Premium users: full trailer playback
+ *     • Free users: playback auto-pauses at trailer_preview_duration (from Remote Config)
+ *       and a glassmorphism paywall overlay appears with lock icon + CTA
  *  5. Rent options — 7 Days ($2.99) / 1 Month ($5.99) / 3 Months ($12.99)
- *       • Tapping a plan opens a confirmation modal showing price + expiry date
- *       • On confirm: fires 'Movie Rented' event + updates user profile
- *  6. Add to Cart button — adds item at BUY_PRICE ($14.99) to MovieCartContext
- *       • Fires 'Add to Cart' event with nested MovieDetails object
- *       • Navigates to CartScreen 800 ms after adding
+ *  6. Add to Cart button ($14.99)
  *
- * ─── DATA FETCHING ───────────────────────────────────────────────────────────
- *  fetchCredits(type, id)   → TMDB cast list; populates horizontal cast scroll
- *  fetchTrailerKey(type, id)→ TMDB video list; picks first YouTube trailer key
- *  Both use AbortController so inflight requests are cancelled on unmount/re-nav.
+ * ─── CLEVERTAP EVENTS FIRED HERE ────────────────────────────────────────────
+ *  Dashboard 1 (Primary):
+ *    'Content Viewed'      → on mount
+ *    'Trailer Viewed'      → once when trailerKey resolves
+ *    'Movie Rented'        → after rental confirmation
+ *    'Add to Cart'         → when user taps cart button
  *
- * ─── CLEVERTAP EVENTS FIRED HERE (Dashboard 1) ───────────────────────────────
- *  'Content Viewed'   → on mount (when the screen first loads)
- *                       props: Title, Type, ID, Release Date
- *  'Trailer Viewed'   → once when trailerKey resolves (fires only once per visit)
- *                       props: Title, Type, ID, Trailer Link (YouTube URL)
- *  'Movie Rented'     → after user confirms a rental plan
- *                       props: Title, Type, ID, Rental Plan, Duration, Price,
- *                              Rented At ($D_ epoch), Expiry Date ($D_ epoch)
- *  'Add to Cart'      → when user taps the cart button
- *                       props: Title, Type, ID, Price, nested MovieDetails object
- *
- * ─── PROFILE UPDATES (Dashboard 1) ──────────────────────────────────────────
- *  After a confirmed rental, CleverTap.profileSet() writes the rental details
- *  to the user's profile so they persist across sessions:
- *    Last Rented Title / Type / Plan / Price / Rental Date / Expiry
- *
- * ─── RENTAL PLAN CONSTANTS ───────────────────────────────────────────────────
- *  RENTAL_PLANS  — array of { key, label, price } for the 3 plan cards
- *  DURATIONS_MS  — maps each plan key to its duration in milliseconds
- *                  used to calculate the expiry epoch passed to profileSet()
- *  BUY_PRICE     — fixed price ($14.99) used for Add to Cart
+ *  Dashboard 2 (Secondary — via CleverTapSecondary):
+ *    'Trailer Started'     → when YouTube playback begins
+ *    'Paywall Shown'       → when the paywall overlay renders for free users
+ *    'Subscription Clicked'→ when the CTA button on the paywall is tapped
  */
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -50,19 +34,24 @@ import {
   Dimensions,
   FlatList,
   TouchableOpacity,
-  Linking,
   ActivityIndicator,
   Modal,
   Animated,
   StatusBar,
+  Platform,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CleverTap from 'clevertap-react-native';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import {POSTER, PROFILE as PROFILE_IMG, fetchCredits, fetchTrailerKey} from '../services/tmdb';
 import {useMovieCart} from '../context/MovieCartContext';
+import {useUser} from '../context/UserContext';
+import {useTheme} from '../context/ThemeContext';
+import CleverTapSecondary from '../services/CleverTapSecondary';
 
 const {width} = Dimensions.get('window');
+const PLAYER_HEIGHT = Math.round((width * 9) / 16); // 16:9 aspect ratio
 
 // Duration in milliseconds for each rental plan
 const DURATIONS_MS = {
@@ -140,13 +129,28 @@ export default function MovieDetail({route, navigation}) {
   } = route?.params || {};
 
   const {addToCart} = useMovieCart();
+  const {mockSubscriptionTier} = useUser();
   const insets = useSafeAreaInsets();
+  const {colors, strings, paywall} = useTheme();
+
+  const isPremium = mockSubscriptionTier === 'Premium';
 
   const [cast, setCast] = useState([]);
   const [trailerKey, setTrailerKey] = useState(null);
   const [loadingCast, setLoadingCast] = useState(true);
   const [selectedRental, setSelectedRental] = useState(null);
   const [trailerEventFired, setTrailerEventFired] = useState(false);
+
+  // ─── YouTube Player State ───────────────────────────────────────
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [trailerStartedFired, setTrailerStartedFired] = useState(false);
+  const [paywallShownFired, setPaywallShownFired] = useState(false);
+
+  // Refs for time tracking (avoids re-renders on every interval tick)
+  const elapsedRef = useRef(0);
+  const intervalRef = useRef(null);
+  const playerRef = useRef(null);
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState({visible: false, plan: null});
@@ -203,6 +207,94 @@ export default function MovieDetail({route, navigation}) {
     }
   }, [trailerKey, trailerEventFired]);
 
+  // ─── Cleanup interval on unmount ───────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // ─── YouTube player state change handler ───────────────────────
+  const onPlayerStateChange = useCallback(
+    (state) => {
+      if (state === 'playing') {
+        setIsPlaying(true);
+
+        // Fire Trailer Started event once (Dashboard 2)
+        if (!trailerStartedFired) {
+          CleverTapSecondary?.recordEventWithProps?.('Trailer Started', {
+            Title: title,
+            Type: type,
+            ID: id,
+            'Subscription Tier': mockSubscriptionTier,
+          });
+          setTrailerStartedFired(true);
+        }
+
+        // Start time-tracking interval for free users
+        if (!isPremium && !showPaywall) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+
+          intervalRef.current = setInterval(() => {
+            elapsedRef.current += 1;
+
+            if (elapsedRef.current >= paywall.previewDuration) {
+              // Time's up — pause and show paywall
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+              setIsPlaying(false);
+              setShowPaywall(true);
+            }
+          }, 1000);
+        }
+      } else if (state === 'paused' || state === 'ended') {
+        setIsPlaying(false);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }
+    },
+    [isPremium, showPaywall, paywall.previewDuration, title, type, id, mockSubscriptionTier, trailerStartedFired],
+  );
+
+  // ─── Fire Paywall Shown event when overlay appears ─────────────
+  useEffect(() => {
+    if (showPaywall && !paywallShownFired) {
+      CleverTapSecondary?.recordEventWithProps?.('Paywall Shown', {
+        Title: title,
+        Type: type,
+        ID: id,
+        'Preview Duration': paywall.previewDuration,
+        'CTA Text': strings.paywallCta,
+      });
+      setPaywallShownFired(true);
+    }
+  }, [showPaywall, paywallShownFired]);
+
+  // ─── Reset paywall when user switches to Premium ───────────────
+  useEffect(() => {
+    if (isPremium && showPaywall) {
+      setShowPaywall(false);
+      elapsedRef.current = 0;
+    }
+  }, [isPremium]);
+
+  // ─── Subscription CTA handler ──────────────────────────────────
+  const handleSubscriptionClick = useCallback(() => {
+    CleverTapSecondary?.recordEventWithProps?.('Subscription Clicked', {
+      Title: title,
+      Type: type,
+      ID: id,
+      'CTA Text': strings.paywallCta,
+      'Subscription Tier': mockSubscriptionTier,
+    });
+    showToast('Upgrade flow would open here', 'info');
+  }, [title, type, id, strings.paywallCta, mockSubscriptionTier]);
+
   // ─── Rent: show confirmation ───────────────────────────────────
   const promptRent = (plan) => {
     setConfirmModal({visible: true, plan});
@@ -219,7 +311,6 @@ export default function MovieDetail({route, navigation}) {
     const now = Date.now();
     const expiryEpoch = now + DURATIONS_MS[plan.key];
 
-    // Record the rental event with epoch timestamps
     CleverTap.recordEvent('Movie Rented', {
       Title: title,
       Type: type,
@@ -232,7 +323,6 @@ export default function MovieDetail({route, navigation}) {
       'Expiry Date': '$D_' + Math.floor(expiryEpoch / 1000),
     });
 
-    // Update user profile with rental info so it persists on the user record
     CleverTap.profileSet({
       'Last Rented Title': title,
       'Last Rented Type': type,
@@ -276,11 +366,6 @@ export default function MovieDetail({route, navigation}) {
     setTimeout(() => navigation.navigate('Cart'), 800);
   };
 
-  const openYoutube = key => {
-    const url = `https://www.youtube.com/watch?v=${key}`;
-    Linking.canOpenURL(url).then(ok => ok && Linking.openURL(url));
-  };
-
   // ─── Cast card ─────────────────────────────────────────────────
   const renderCast = ({item}) => (
     <View style={styles.castCard}>
@@ -292,15 +377,18 @@ export default function MovieDetail({route, navigation}) {
     </View>
   );
 
+  // Whether free trailers are allowed at all (from Remote Config)
+  const trailersAllowed = isPremium || paywall.allowFreeTrailers;
+
   return (
-    <View style={{flex: 1, backgroundColor: '#0D0D0D'}}>
+    <View style={{flex: 1, backgroundColor: colors.background}}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ScrollView style={styles.container} contentContainerStyle={{paddingBottom: insets.bottom + 24}}>
+      <ScrollView style={[styles.container, {backgroundColor: colors.background}]} contentContainerStyle={{paddingBottom: insets.bottom + 24}}>
         {/* ─── Back button ─────────────────────────────────── */}
         <TouchableOpacity
           style={[styles.backBtn, {top: insets.top + 12}]}
           onPress={() => navigation.canGoBack() && navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#FFF" />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
 
         {/* ─── Header ──────────────────────────────────────── */}
@@ -310,7 +398,7 @@ export default function MovieDetail({route, navigation}) {
           <View style={styles.headerContent}>
             <Image source={{uri: image}} style={styles.poster} />
             <View style={styles.headerText}>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={[styles.title, {color: colors.text}]}>{title}</Text>
               <Text style={styles.meta}>
                 {(type || '').toUpperCase()}{' '}
                 {release_date ? `\u2022 ${release_date}` : ''}
@@ -324,17 +412,17 @@ export default function MovieDetail({route, navigation}) {
 
         {/* ─── Overview ────────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overview</Text>
-          <Text style={styles.overviewFull}>
+          <Text style={[styles.sectionTitle, {color: colors.text}]}>Overview</Text>
+          <Text style={[styles.overviewFull, {color: colors.textSecondary}]}>
             {overview || 'No overview available.'}
           </Text>
         </View>
 
         {/* ─── Cast ────────────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cast</Text>
+          <Text style={[styles.sectionTitle, {color: colors.text}]}>Cast</Text>
           {loadingCast ? (
-            <ActivityIndicator style={{marginTop: 8}} />
+            <ActivityIndicator style={{marginTop: 8}} color={colors.primary} />
           ) : cast.length > 0 ? (
             <FlatList
               data={cast}
@@ -349,35 +437,78 @@ export default function MovieDetail({route, navigation}) {
           )}
         </View>
 
-        {/* ─── Trailer ─────────────────────────────────────── */}
+        {/* ─── Trailer (YouTube Iframe Player + Paywall) ──── */}
         {trailerKey ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Trailer</Text>
-            <TouchableOpacity
-              style={styles.trailerWrap}
-              activeOpacity={0.9}
-              onPress={() => openYoutube(trailerKey)}>
-              <Image
-                source={{uri: `https://img.youtube.com/vi/${trailerKey}/hqdefault.jpg`}}
-                style={styles.trailerThumb}
-                resizeMode="cover"
-              />
-              <View style={styles.trailerOverlay}>
-                <View style={styles.playCircle}>
-                  <Ionicons name="play" size={32} color="#FFF" style={{marginLeft: 3}} />
+            <Text style={[styles.sectionTitle, {color: colors.text}]}>Trailer</Text>
+            {trailersAllowed ? (
+              <View style={[styles.playerContainer, {backgroundColor: colors.surface}]}>
+                <YoutubePlayer
+                  ref={playerRef}
+                  height={PLAYER_HEIGHT}
+                  videoId={trailerKey}
+                  play={isPlaying}
+                  onChangeState={onPlayerStateChange}
+                  webViewProps={{
+                    allowsInlineMediaPlayback: true,
+                    mediaPlaybackRequiresUserAction: false,
+                  }}
+                />
+
+                {/* ─── Glassmorphism Paywall Overlay ─── */}
+                {showPaywall && !isPremium && (
+                  <View style={paywallStyles.overlay}>
+                    <View style={paywallStyles.glass}>
+                      <View style={[paywallStyles.lockCircle, {backgroundColor: colors.primaryLight, borderColor: colors.primary + '4D'}]}>
+                        <Ionicons name="lock-closed" size={32} color={colors.primary} />
+                      </View>
+                      <Text style={[paywallStyles.title, {color: colors.text}]}>Preview Ended</Text>
+                      <Text style={paywallStyles.subtitle}>
+                        Upgrade to watch the full trailer and unlock all content
+                      </Text>
+                      <TouchableOpacity
+                        style={[paywallStyles.ctaBtn, {backgroundColor: colors.primary}]}
+                        activeOpacity={0.85}
+                        onPress={handleSubscriptionClick}>
+                        <Ionicons name="diamond" size={18} color={colors.ctaText} />
+                        <Text style={[paywallStyles.ctaText, {color: colors.ctaText}]}>
+                          {strings.paywallCta}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={paywallStyles.hint}>
+                        Free preview: {paywall.previewDuration}s
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Tier badge */}
+                <View style={[styles.tierBadge, isPremium ? {backgroundColor: colors.primary + 'D9'} : styles.tierFree]}>
+                  <Ionicons
+                    name={isPremium ? 'diamond' : 'time-outline'}
+                    size={12}
+                    color={isPremium ? colors.ctaText : '#FFF'}
+                  />
+                  <Text style={styles.tierText}>
+                    {isPremium ? 'Premium' : `Free (${paywall.previewDuration}s)`}
+                  </Text>
                 </View>
               </View>
-              <View style={styles.youtubeBtn}>
-                <Ionicons name="logo-youtube" size={20} color="#FF0000" />
-                <Text style={styles.youtubeBtnText}>Watch on YouTube</Text>
+            ) : (
+              /* Trailers disabled for free users via Remote Config */
+              <View style={[styles.trailerDisabled, {borderColor: colors.border}]}>
+                <Ionicons name="lock-closed" size={40} color={colors.primary} />
+                <Text style={styles.trailerDisabledText}>
+                  Trailers are only available for Premium users
+                </Text>
               </View>
-            </TouchableOpacity>
+            )}
           </View>
         ) : null}
 
         {/* ─── Rent Options ────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, {color: colors.text}]}>
             Rent this {type === 'tv' ? 'Series' : 'Movie'}
           </Text>
           <Text style={styles.rentHint}>Choose a rental duration</Text>
@@ -387,18 +518,18 @@ export default function MovieDetail({route, navigation}) {
               return (
                 <TouchableOpacity
                   key={plan.key}
-                  style={[styles.rentalCard, isSelected && styles.rentalCardSelected]}
+                  style={[styles.rentalCard, {borderColor: colors.border, backgroundColor: colors.surface}, isSelected && {borderColor: colors.primary, backgroundColor: colors.primary}]}
                   activeOpacity={0.8}
                   onPress={() => promptRent(plan)}>
                   <Ionicons
                     name="time-outline"
                     size={24}
-                    color={isSelected ? '#FFF' : '#5E35B1'}
+                    color={isSelected ? colors.ctaText : colors.primary}
                   />
-                  <Text style={[styles.rentalDuration, isSelected && styles.rentalTextSelected]}>
+                  <Text style={[styles.rentalDuration, isSelected && {color: colors.ctaText}]}>
                     {plan.label}
                   </Text>
-                  <Text style={[styles.rentalPrice, isSelected && styles.rentalTextSelected]}>
+                  <Text style={[styles.rentalPrice, {color: colors.primary}, isSelected && {color: colors.ctaText}]}>
                     ${plan.price.toFixed(2)}
                   </Text>
                 </TouchableOpacity>
@@ -410,11 +541,11 @@ export default function MovieDetail({route, navigation}) {
         {/* ─── Add to Cart ─────────────────────────────────── */}
         <View style={styles.section}>
           <TouchableOpacity
-            style={styles.addToCartBtn}
+            style={[styles.addToCartBtn, {backgroundColor: colors.primary}]}
             activeOpacity={0.85}
             onPress={handleAddToCart}>
-            <Ionicons name="cart-outline" size={20} color="#FFF" />
-            <Text style={styles.addToCartText}>
+            <Ionicons name="cart-outline" size={20} color={colors.ctaText} />
+            <Text style={[styles.addToCartText, {color: colors.ctaText}]}>
               Add to Cart — ${BUY_PRICE.toFixed(2)}
             </Text>
           </TouchableOpacity>
@@ -436,11 +567,11 @@ export default function MovieDetail({route, navigation}) {
         animationType="fade"
         onRequestClose={() => setConfirmModal({visible: false, plan: null})}>
         <View style={modalStyles.overlay}>
-          <View style={modalStyles.card}>
+          <View style={[modalStyles.card, {backgroundColor: colors.surface, borderColor: colors.border}]}>
             <View style={modalStyles.iconCircle}>
-              <Ionicons name="time-outline" size={32} color="#5E35B1" />
+              <Ionicons name="time-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={modalStyles.title}>Confirm Rental</Text>
+            <Text style={[modalStyles.title, {color: colors.text}]}>Confirm Rental</Text>
             <Text style={modalStyles.subtitle}>
               Rent "{title}" for{' '}
               <Text style={{fontWeight: '700'}}>
@@ -474,8 +605,8 @@ export default function MovieDetail({route, navigation}) {
                 onPress={() => setConfirmModal({visible: false, plan: null})}>
                 <Text style={modalStyles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={modalStyles.confirmBtn} onPress={confirmRent}>
-                <Text style={modalStyles.confirmText}>Yes, Rent</Text>
+              <TouchableOpacity style={[modalStyles.confirmBtn, {backgroundColor: colors.primary}]} onPress={confirmRent}>
+                <Text style={[modalStyles.confirmText, {color: colors.ctaText}]}>Yes, Rent</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -484,6 +615,83 @@ export default function MovieDetail({route, navigation}) {
     </View>
   );
 }
+
+// ─── Paywall overlay styles (glassmorphism) ───────────────────────────
+const paywallStyles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  glass: {
+    width: '85%',
+    backgroundColor: 'rgba(30, 30, 38, 0.85)',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    // iOS blur-like shadow
+    shadowColor: '#7C4DFF',
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  lockCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(94, 53, 177, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#AAA',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  ctaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFD700',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 14,
+    width: '100%',
+    shadowColor: '#FFD700',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  ctaText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0D0D0D',
+  },
+  hint: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 12,
+  },
+});
 
 // ─── Modal styles ────────────────────────────────────────────────────
 const modalStyles = StyleSheet.create({
@@ -605,32 +813,49 @@ const styles = StyleSheet.create({
   castName: {marginTop: 6, fontSize: 12, fontWeight: '700', color: '#FFF'},
   castRole: {fontSize: 11, color: '#666', marginTop: 2, textAlign: 'center'},
 
-  trailerWrap: {borderRadius: 14, overflow: 'hidden', backgroundColor: '#161618', elevation: 3},
-  trailerThumb: {width: '100%', height: 210, backgroundColor: '#222'},
-  trailerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    height: 210,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  // YouTube player container
+  playerContainer: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#161618',
+    elevation: 3,
+    position: 'relative',
   },
-  playCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255,0,0,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  youtubeBtn: {
+
+  // Tier badge (top-right of player)
+  tierBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: '#1A1A1A',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    zIndex: 5,
   },
-  youtubeBtnText: {color: '#fff', fontWeight: '600', fontSize: 14},
+  tierPremium: {backgroundColor: 'rgba(94, 53, 177, 0.85)'},
+  tierFree: {backgroundColor: 'rgba(0, 0, 0, 0.65)'},
+  tierText: {fontSize: 11, fontWeight: '700', color: '#FFF'},
+
+  // Trailers disabled state
+  trailerDisabled: {
+    height: PLAYER_HEIGHT,
+    borderRadius: 14,
+    backgroundColor: '#161618',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#252528',
+  },
+  trailerDisabledText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
 
   rentHint: {fontSize: 13, color: '#666', marginBottom: 12},
   rentalRow: {flexDirection: 'row', gap: 10},

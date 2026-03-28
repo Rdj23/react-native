@@ -31,6 +31,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import CameraIcon from '../../src/assets/User.svg';
 import {useUser} from '../context/UserContext';
+import {useTheme} from '../context/ThemeContext';
 
 // ─── Custom Toast Component ──────────────────────────────────────────
 function Toast({visible, message, type, onDismiss}) {
@@ -134,14 +135,14 @@ function buildPropsObject(rows) {
 }
 
 // ─── Section Card wrapper ────────────────────────────────────────────
-function SectionCard({icon, title, hint, children}) {
+function SectionCard({icon, title, hint, children, colors}) {
   return (
-    <View style={s.card}>
+    <View style={[s.card, {backgroundColor: colors.surface, borderColor: colors.border}]}>
       <View style={s.cardHeader}>
         <View style={s.cardIconCircle}>
-          <Ionicons name={icon} size={18} color="#5E35B1" />
+          <Ionicons name={icon} size={18} color={colors.primary} />
         </View>
-        <Text style={s.cardTitle}>{title}</Text>
+        <Text style={[s.cardTitle, {color: colors.text}]}>{title}</Text>
       </View>
       {hint ? <Text style={s.cardHint}>{hint}</Text> : null}
       {children}
@@ -152,6 +153,7 @@ function SectionCard({icon, title, hint, children}) {
 export default function ProfileScreen({navigation}) {
   const insets = useSafeAreaInsets();
   const {user, setUser} = useUser();
+  const {colors} = useTheme();
 
   const [name, setName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
@@ -228,11 +230,11 @@ export default function ProfileScreen({navigation}) {
     setter(p => (p.length === 1 ? [{key: '', value: ''}] : p.filter((_, j) => j !== i)));
 
   return (
-    <SafeAreaView style={s.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D0D" />
+    <SafeAreaView style={[s.container, {backgroundColor: colors.background}]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       {/* ─── Header ──────────────────────────────────────── */}
-      <View style={[s.headerBar, {paddingTop: insets.top + 12}]}>
-        <Text style={s.headerTitle}>Profile</Text>
+      <View style={[s.headerBar, {paddingTop: insets.top + 12, backgroundColor: colors.header, borderBottomColor: colors.border}]}>
+        <Text style={[s.headerTitle, {color: colors.text}]}>Profile</Text>
       </View>
 
       <ScrollView
@@ -243,17 +245,17 @@ export default function ProfileScreen({navigation}) {
         {/* ══════════════════════════════════════════════════
             CARD 1 — Edit Profile
             ══════════════════════════════════════════════════ */}
-        <SectionCard icon="person-outline" title="Edit Profile">
+        <SectionCard icon="person-outline" title="Edit Profile" colors={colors}>
           {/* Avatar */}
           <TouchableOpacity style={s.avatarWrap} onPress={() => {}}>
             {avatarUrl ? (
               <Image source={{uri: avatarUrl}} style={s.avatar} />
             ) : (
-              <View style={s.avatarPlaceholder}>
-                <CameraIcon width={28} height={28} fill="#FFF" />
+              <View style={[s.avatarPlaceholder, {backgroundColor: colors.primary}]}>
+                <CameraIcon width={28} height={28} fill={colors.ctaText} />
               </View>
             )}
-            <Text style={s.changePhotoText}>Change Photo</Text>
+            <Text style={[s.changePhotoText, {color: colors.primary}]}>Change Photo</Text>
           </TouchableOpacity>
 
           {/* Name */}
@@ -279,33 +281,33 @@ export default function ProfileScreen({navigation}) {
 
           {error ? <Text style={s.errorText}>{error}</Text> : null}
 
-          <TouchableOpacity style={s.btnPrimary} onPress={handleSave}>
-            <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
-            <Text style={s.btnPrimaryText}>Save Profile</Text>
+          <TouchableOpacity style={[s.btnPrimary, {backgroundColor: colors.primary}]} onPress={handleSave}>
+            <Ionicons name="checkmark-circle-outline" size={18} color={colors.ctaText} />
+            <Text style={[s.btnPrimaryText, {color: colors.ctaText}]}>Save Profile</Text>
           </TouchableOpacity>
         </SectionCard>
 
         {/* ══════════════════════════════════════════════════
             CARD 2 — Notification Preferences
             ══════════════════════════════════════════════════ */}
-        <SectionCard icon="notifications-outline" title="Notification Preferences">
+        <SectionCard icon="notifications-outline" title="Notification Preferences" colors={colors}>
           {[
             {key: 'whatsapp', label: 'WhatsApp', icon: 'logo-whatsapp', disabled: !isPhoneValid},
             {key: 'push', label: 'Mobile Push', icon: 'phone-portrait-outline', disabled: false},
             {key: 'sms', label: 'SMS', icon: 'chatbubble-outline', disabled: !isPhoneValid},
             {key: 'email', label: 'Email', icon: 'mail-outline', disabled: !isEmailValid},
           ].map(item => (
-            <View key={item.key} style={s.prefRow}>
+            <View key={item.key} style={[s.prefRow, {borderBottomColor: colors.border}]}>
               <View style={s.prefLeft}>
-                <Ionicons name={item.icon} size={20} color={item.disabled ? '#CCC' : '#333'} />
+                <Ionicons name={item.icon} size={20} color={item.disabled ? '#CCC' : colors.textSecondary} />
                 <Text style={[s.prefLabel, item.disabled && {color: '#CCC'}]}>{item.label}</Text>
               </View>
               <Switch
                 value={preferences[item.key]}
                 onValueChange={() => togglePreference(item.key)}
                 disabled={item.disabled}
-                trackColor={{false: '#333', true: '#7E57C2'}}
-                thumbColor={preferences[item.key] ? '#5E35B1' : '#F5F5F5'}
+                trackColor={{false: '#333', true: colors.accent}}
+                thumbColor={preferences[item.key] ? colors.primary : '#F5F5F5'}
               />
             </View>
           ))}
@@ -317,7 +319,8 @@ export default function ProfileScreen({navigation}) {
         <SectionCard
           icon="construct-outline"
           title="Set User Properties"
-          hint="Add key-value pairs. Use commas in the value for arrays. Leave value empty for empty string.">
+          hint="Add key-value pairs. Use commas in the value for arrays. Leave value empty for empty string."
+          colors={colors}>
           {userProps.map((row, i) => (
             <KeyValueRow
               key={`up-${i}`}
@@ -327,19 +330,19 @@ export default function ProfileScreen({navigation}) {
             />
           ))}
           <TouchableOpacity style={s.addRowBtn} onPress={() => addRow(setUserProps)}>
-            <Ionicons name="add-circle-outline" size={18} color="#5E35B1" />
-            <Text style={s.addRowText}>Add Property</Text>
+            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+            <Text style={[s.addRowText, {color: colors.primary}]}>Add Property</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.btnSecondary} onPress={handlePushUserProps}>
-            <Ionicons name="cloud-upload-outline" size={18} color="#FFF" />
-            <Text style={s.btnSecondaryText}>Push to CleverTap</Text>
+          <TouchableOpacity style={[s.btnSecondary, {backgroundColor: colors.primary}]} onPress={handlePushUserProps}>
+            <Ionicons name="cloud-upload-outline" size={18} color={colors.ctaText} />
+            <Text style={[s.btnSecondaryText, {color: colors.ctaText}]}>Push to CleverTap</Text>
           </TouchableOpacity>
         </SectionCard>
 
         {/* ══════════════════════════════════════════════════
             CARD 4 — Fire Custom Event
             ══════════════════════════════════════════════════ */}
-        <SectionCard icon="flash-outline" title="Fire Custom Event">
+        <SectionCard icon="flash-outline" title="Fire Custom Event" colors={colors}>
           <Text style={s.inputLabel}>Event Name</Text>
           <View style={s.inputWrap}>
             <Ionicons name="pricetag-outline" size={18} color="#999" />
@@ -356,8 +359,8 @@ export default function ProfileScreen({navigation}) {
             />
           ))}
           <TouchableOpacity style={s.addRowBtn} onPress={() => addRow(setEventProps)}>
-            <Ionicons name="add-circle-outline" size={18} color="#5E35B1" />
-            <Text style={s.addRowText}>Add Property</Text>
+            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+            <Text style={[s.addRowText, {color: colors.primary}]}>Add Property</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.btnAccent} onPress={handleFireEvent}>
             <Ionicons name="flash" size={18} color="#FFF" />

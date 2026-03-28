@@ -1,13 +1,35 @@
 // src/context/UserContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CleverTap from 'clevertap-react-native';
+import CleverTapSecondary from '../services/CleverTapSecondary';
 
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(null);   //to manage global state of the user around the application. 
+  const [user, setUser] = useState(null);   //to manage global state of the user around the application.
   const [isLoggedIn, setIsLoggedIn] = useState(false); //check if the user is logged in or not and then decide to show the app or auth screens.
   const [ready, setReady] = useState(false); //to avoid login screen for split of second , the RN component rendered before async finish.
+  const [mockSubscriptionTier, setMockSubscriptionTier] = useState('Free'); // 'Free' or 'Premium' — dev toggle for paywall testing
+
+  // Sync subscription tier to both dashboards whenever it changes
+  useEffect(() => {
+    if (isLoggedIn) {
+      CleverTap.profileSet({ 'Subscription Tier': mockSubscriptionTier });
+      CleverTapSecondary?.profileSet?.({ 'Subscription Tier': mockSubscriptionTier });
+    }
+  }, [mockSubscriptionTier, isLoggedIn]);
+
+  // Sync user identity to Dashboard 2 (secondary) so profiles are identifiable
+  useEffect(() => {
+    if (isLoggedIn && user?.email) {
+      const identity = { Email: user.email };
+      if (user.name) identity.Name = user.name;
+      if (user.phone) identity.Phone = user.phone;
+      identity['Subscription Tier'] = mockSubscriptionTier;
+      CleverTapSecondary?.onUserLogin?.(identity);
+    }
+  }, [isLoggedIn, user?.email]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -72,7 +94,7 @@ export function UserProvider({ children }) {
   // }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser, isLoggedIn, login, logout, ready }}>
+    <UserContext.Provider value={{ user, setUser, isLoggedIn, login, logout, ready, mockSubscriptionTier, setMockSubscriptionTier }}>
       {children}
     </UserContext.Provider>
   );
