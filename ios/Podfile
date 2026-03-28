@@ -21,7 +21,7 @@ end
  
 target 'NotificationCT' do
   pod 'CTNotificationService'
-  pod 'CleverTap-iOS-SDK'
+  pod 'CleverTap-iOS-SDK', '~> 7.5'
 end
 
 target 'ecommerceApp' do

@@ -35,7 +35,10 @@ public class MainApplication extends CleverTapApplication implements ReactApplic
 
         @Override
         protected List<ReactPackage> getPackages() {
-            return new PackageList(this).getPackages();
+            List<ReactPackage> packages = new PackageList(this).getPackages();
+            // Register the secondary CleverTap instance native module
+            packages.add(new CleverTapSecondaryPackage());
+            return packages;
         }
 
         @Override

@@ -1,9 +1,9 @@
 import React from 'react';
+import {View, Text} from 'react-native';
 import {createStackNavigator} from '@react-navigation/stack';
 
 import AuthStack from './AuthStack';
 import DrawerNavigator from './DrawerNavigator';
-import ProductScreen from '../screens/ProductScreen';
 import {useUser} from '../context/UserContext';
 
 const Stack = createStackNavigator();
@@ -24,10 +24,7 @@ export default function RootNavigator() {
       {!isLoggedIn ? (
         <Stack.Screen name="Auth" component={AuthStack} />
       ) : (
-        <>
-          <Stack.Screen name="MainApp" component={DrawerNavigator} />
-          <Stack.Screen name="Product" component={ProductScreen} />
-        </>
+        <Stack.Screen name="MainApp" component={DrawerNavigator} />
       )}
     </Stack.Navigator>
   );

@@ -1,4 +1,19 @@
 // App.js
+//
+// Root of the application. Responsibilities:
+//   1. Wraps the entire tree with context providers (UserProvider, MovieCartProvider)
+//   2. Initializes CleverTap App Inbox on mount
+//   3. Requests push notification permission (Android 13+) and creates
+//      notification channels used by CleverTap push campaigns
+//   4. Registers global In-App notification callbacks (shown / button tapped / dismissed)
+//
+// CleverTap accounts wired up in this app:
+//   Dashboard 1 (Primary)   → handled by `clevertap-react-native` default import
+//                              push, in-app messages, App Inbox, event analytics
+//   Dashboard 2 (Secondary) → handled by CleverTapSecondary native module
+//                              (src/services/CleverTapSecondary.js)
+//                              separate Account ID & Token, initialized natively
+//
 import React, {useEffect, useState} from 'react';
 import {Platform, PermissionsAndroid} from 'react-native';
 import messaging from '@react-native-firebase/messaging';
@@ -6,20 +21,29 @@ import messaging from '@react-native-firebase/messaging';
 import {NavigationContainer} from '@react-navigation/native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
-import {CartProvider} from './src/context/CartContext';
-import {WishlistProvider} from './src/context/WishlistContext';
 import {UserProvider} from './src/context/UserContext';
+import {MovieCartProvider} from './src/context/MovieCartContext';
 import DrawerNavigator from './src/navigation/DrawerNavigator';
 import CleverTap from 'clevertap-react-native';
+import {initialize as initInbox} from './src/services/InboxService';
 
 export default function App() {
-  //App Inbox
-
+  // Initializes the App Inbox SDK on the primary CleverTap instance.
+  // Must run before any screen tries to fetch inbox messages.
+  // InboxService.initialize() → CleverTap.initializeInbox()
   useEffect(() => {
-    CleverTap.initializeInbox();
+    initInbox();
   }, []);
 
-  //Push
+  // Handles push notification setup for both Android and iOS.
+  //   - Android 13+ requires an explicit POST_NOTIFICATIONS runtime permission.
+  //   - createNotificationChannel sets up the channel that CleverTap uses when
+  //     delivering push on Android 8+. Channel ID must match what is configured
+  //     in the CleverTap Dashboard 1 push campaign settings.
+  //   - createNotificationChannelWithSound adds a second channel with a custom
+  //     sound (coinswin.mp3 — must be in android/app/src/main/res/raw/).
+  //   - CleverTapPushNotificationClicked listener fires when the user taps a
+  //     push notification; use it for deep-link navigation handling.
   useEffect(() => {
     const initPush = async () => {
       // Android 13+ requires runtime permission
@@ -74,7 +98,12 @@ export default function App() {
     initPush();
   }, []);
 
-  // In-App callbacks - will check later
+  // Global callbacks for CleverTap In-App notification lifecycle (Dashboard 1).
+  //   CleverTapInAppNotificationShowed     → fires when an in-app renders on screen
+  //   CleverTapInAppNotificationButtonTapped → fires when the user taps a CTA button
+  //   CleverTapInAppNotificationDismissed  → fires on swipe/close; also records
+  //                                          a 'Notification dismissed' event so
+  //                                          we can track dismissal rate in Dashboard 1
   useEffect(() => {
     CleverTap.addListener(CleverTap.CleverTapInAppNotificationShowed, evt => {
       console.log('In-App shown:', evt);
@@ -96,14 +125,15 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{flex: 1}}>
+      {/* UserProvider — exposes Firebase auth user across all screens */}
       <UserProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <NavigationContainer>
-              <DrawerNavigator />
-            </NavigationContainer>
-          </WishlistProvider>
-        </CartProvider>
+        {/* MovieCartProvider — global cart state (items, total, add/remove) */}
+        <MovieCartProvider>
+          <NavigationContainer>
+            {/* DrawerNavigator — root navigator; wraps MainTabs + drawer menu */}
+            <DrawerNavigator />
+          </NavigationContainer>
+        </MovieCartProvider>
       </UserProvider>
     </GestureHandlerRootView>
   );

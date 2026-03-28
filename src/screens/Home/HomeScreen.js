@@ -1,339 +1,436 @@
-// src/screens/HomeScreen.js
-import React, {useState, useEffect} from 'react';
+/**
+ * HomeScreen — OTT-style home with immersive hero, search, trending content.
+ *
+ * ─── LAYOUT ──────────────────────────────────────────────────────────────────
+ *  1. Immersive Hero section (full-width backdrop of the #1 trending movie)
+ *       • "Watch Now" and "More Info" CTAs both navigate to MovieDetail
+ *       • Top bar: hamburger (opens drawer), greeting, InboxIcon (badge + tap)
+ *  2. Search bar with live debounced search via TMDB API (400 ms debounce)
+ *       • Results dropdown shows up to 6 items; dismissed on clear / result tap
+ *  3. Filter chips (All / Movies / TV Series) to toggle which sections appear
+ *  4. Trending Movies horizontal scroll (from TMDB /trending/movie/week)
+ *  5. Trending TV Series horizontal scroll (from TMDB /trending/tv/week)
+ *  6. Test button at the bottom for the secondary CleverTap instance
+ *
+ * ─── CLEVERTAP EVENTS FIRED HERE (Dashboard 1) ───────────────────────────────
+ *  'HomeScreen Launched'   → on mount; signals home visit in analytics
+ *  'Trending Loaded'       → after TMDB fetch succeeds; includes movie/TV counts
+ *  'Content Viewed'        → when user taps any card or search result;
+ *                            carries Title, Type (movie/tv), and TMDB ID
+ *
+ * ─── SECONDARY INSTANCE USAGE ────────────────────────────────────────────────
+ *  CleverTapSecondary.recordEvent('test instance') is wired to the "Test
+ *  Secondary Instance" button at the bottom. This validates that Dashboard 2
+ *  (secondary account) is receiving events correctly before building PE on it.
+ */
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   FlatList,
   Image,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   Dimensions,
   ActivityIndicator,
   ScrollView,
-  DeviceEventEmitter,
-  Linking,
   Platform,
+  StatusBar,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import CategoryTabs from '../../components/CategoryTabs';
 import CleverTap from 'clevertap-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
-import MenuIcon from '../../assets/Menu.svg';
 import InboxIcon from '../../components/InboxIcon';
+import CleverTapSecondary from '../../services/CleverTapSecondary';
+import {
+  fetchTrendingMovies,
+  fetchTrendingTV,
+  searchMulti,
+  POSTER,
+  BACKDROP,
+} from '../../services/tmdb';
 
+const {width, height: SCREEN_H} = Dimensions.get('window');
+const HERO_H = SCREEN_H * 0.62;
+const CARD_W = width * 0.33;
+const POSTER_H = Math.round(CARD_W * 1.5);
 
-const {width} = Dimensions.get('window');
-const CARD_W = (width - 48) / 3;
+const FILTERS = [
+  {key: 'all', label: 'All'},
+  {key: 'movie', label: 'Movies'},
+  {key: 'tv', label: 'TV Series'},
+];
 
-const SECTION_CONFIG = {
-  men: [
-    {key: 'mens-shirts', label: 'Shirts', categories: ['mens-shirts']},
-    {key: 'mens-watches', label: 'Watches', categories: ['mens-watches']},
-    {key: 'mens-shoes', label: 'Shoes', categories: ['mens-shoes']},
-  ],
-  women: [
-    {key: 'womens-dresses', label: 'Dresses', categories: ['womens-dresses']},
-    {key: 'tops', label: 'Tops', categories: ['tops']},
-    {key: 'womens-bags', label: 'Womens Bag', categories: ['womens-bags']},
-    {key: 'womens-shoes', label: 'Shoes', categories: ['womens-shoes']},
-    {key: 'womens-jewellery', label: 'Jewellery', categories: ['womens-jewellery']},
-    {key: 'womens-watches', label: 'Women watches', categories: ['womens-watches']},
-  ],
-  accessories: [
-    {key: 'feature', label: 'Feature Products', categories: ['sunglasses']},
-    {key: 'laptops', label: 'Laptops', categories: ['laptops']},
-    {key: 'smartphones', label: 'Phones', categories: ['smartphones']},
-    {key: 'tablets', label: 'Tablets', categories: ['tablets']},
-    {key: 'mobile-accessories', label: 'Mobile Accessories', categories: ['mobile-accessories']},
-    {key: 'kitchen-accessories', label: 'Kitchen Accessories', categories: ['kitchen-accessories']},
-  ],
-  beauty: [
-    {key: 'feature', label: 'Feature Products', categories: ['beauty']},
-    {key: 'skincare', label: 'Skincare', categories: ['skin-care']},
-    {key: 'fragrances', label: 'Fragrances', categories: ['fragrances']},
-    {key: 'lighting', label: 'Lighting', categories: ['lighting']},
-  ],
-};
+const DEBOUNCE_MS = 400;
 
 export default function HomeScreen({navigation}) {
   const insets = useSafeAreaInsets();
-  const [selectedTab, setSelectedTab] = useState('men');
-  const [sectionsData, setSectionsData] = useState({});
-  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [filter, setFilter] = useState('all');
 
-  const [banners, setBanners] = useState([]);
-  const [imageUrls, setImageUrls] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [movies, setMovies] = useState([]);
+  const [tvShows, setTvShows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef(null);
+  const searchAbortRef = useRef(null);
 
-  //CleverTapDisplayUnitsLoaded -> Listener for display unit load events
-  //getAllDisplayUnits -> Fetch all available display units
-  //pushDisplayUnitViewedEventForID -> Track display unit impression
-  //pushDisplayUnitClickedEventForID -> Track display unit click 
+  const bottomPad = insets.bottom + 16;
 
+  useEffect(() => { CleverTap.recordEvent('HomeScreen Launched'); }, []);
+  useEffect(() => { setUser(auth().currentUser); }, []);
+
+  // ─── TMDB Trending ────────────────────────────────────────────────
   useEffect(() => {
-
-    CleverTap.recordEvent('HomeScreen Launched');
-
-    const listener = DeviceEventEmitter.addListener(
-      'CleverTapDisplayUnitsLoaded',
-      units => {
-        if (Array.isArray(units) && units.length) {
-          const parsed = units.flatMap(unit =>
-            (unit.content || []).map(content => ({
-              wzrk_id: unit.wzrk_id,
-              image: content.media?.url,
-              action: content.action,
-            }))
-          );
-          setBanners(parsed);
-          setImageUrls(parsed.map(b => b.image));
-
-          CleverTap.pushDisplayUnitViewedEventForID(units[0].wzrk_id);
-        }
-      },
-    );
-    
-    CleverTap.getAllDisplayUnits((_, cached) => {
-      if (Array.isArray(cached) && cached.length) {
-        const parsed = cached.flatMap(unit =>
-          (unit.content || []).map(content => ({
-            wzrk_id: unit.wzrk_id,
-            image: content.media?.url,
-            action: content.action,
-          }))
-        );
-        setBanners(parsed);
-        setImageUrls(parsed.map(b => b.image));
-
-        CleverTap.pushDisplayUnitViewedEventForID(cached[0].wzrk_id);
-      }
-    });
-
-    return () => listener.remove();
-  }, []);
-
-  // auto-cycle carousel every 5 seconds
-  useEffect(() => {
-    if (imageUrls.length < 2) return;
-    const interval = setInterval(() => {
-      setActiveIndex(prev => (prev + 1) % imageUrls.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [imageUrls]);
-
-  useEffect(() => {
-    setUser(auth().currentUser);
-  }, []);
-
-  // fetch product sections from dummyjson.com
-  useEffect(() => {
-    let alive = true;
+    const ctrl = new AbortController();
     setLoading(true);
-
-    Promise.all(
-      SECTION_CONFIG[selectedTab].map(section =>
-        Promise.all(
-          section.categories.map(cat =>
-            fetch(`https://dummyjson.com/products/category/${cat}?limit=50`)
-              .then(r => r.json())
-              .then(j => j.products),
-          ),
-        ).then(arrays => ({
-          key: section.key,
-          label: section.label,
-          items: arrays.flat(),
-        })),
-      ),
-    )
-      .then(results => {
-        if (!alive) return;
-        const map = {};
-        results.forEach(s => (map[s.key] = s.items));
-        setSectionsData(map);
+    Promise.all([fetchTrendingMovies(ctrl.signal), fetchTrendingTV(ctrl.signal)])
+      .then(([m, tv]) => {
+        setMovies(m);
+        setTvShows(tv);
+        CleverTap.recordEvent('Trending Loaded', {movieCount: m.length, tvCount: tv.length});
       })
-      .catch(console.error)
-      .finally(() => alive && setLoading(false));
+      .catch(e => { if (e.name !== 'AbortError') console.warn('TMDB error:', e); })
+      .finally(() => setLoading(false));
+    return () => ctrl.abort();
+  }, []);
 
-    return () => { alive = false; };
-  }, [selectedTab]);
+  // ─── Search ───────────────────────────────────────────────────────
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    const trimmed = query.trim();
+    if (trimmed.length < 2) { setSearchResults([]); setSearching(false); return; }
+    setSearching(true);
+    debounceRef.current = setTimeout(() => {
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+      const ctrl = new AbortController();
+      searchAbortRef.current = ctrl;
+      searchMulti(trimmed, ctrl.signal)
+        .then(r => { setSearchResults(r); setSearching(false); })
+        .catch(e => { if (e.name !== 'AbortError') { setSearchResults([]); setSearching(false); } });
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
-  const renderCard = ({item}) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.7}
-      onPress={() => navigation.navigate('Product', {product: item})}>
-      <Image source={{uri: item.thumbnail}} style={styles.image} />
-      <Text style={styles.name} numberOfLines={1}>{item.title}</Text>
-      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-    </TouchableOpacity>
-  );
+  // ─── Navigation ───────────────────────────────────────────────────
+  const openDetail = useCallback(item => {
+    const t = item.title || item.name || '';
+    const tp = item.media_type || (item.first_air_date ? 'tv' : 'movie');
+    CleverTap.recordEvent('Content Viewed', {Title: t, Type: tp, ID: item.id});
+    setQuery(''); setSearchResults([]);
+    navigation.navigate('MovieDetail', {
+      id: item.id, title: t,
+      image: POSTER(item.poster_path, 'w780'),
+      release_date: item.release_date || item.first_air_date || '',
+      overview: item.overview || '', type: tp,
+      backdrop: BACKDROP(item.backdrop_path),
+    });
+  }, [navigation]);
 
-  const sections = SECTION_CONFIG[selectedTab];
+  // ─── Renders ──────────────────────────────────────────────────────
+  const renderSearchResult = ({item}) => {
+    const t = item.title || item.name || '';
+    const yr = (item.release_date || item.first_air_date || '').slice(0, 4);
+    const tp = (item.media_type || '').toUpperCase();
+    return (
+      <TouchableOpacity style={st.searchRow} onPress={() => openDetail(item)}>
+        <Image source={{uri: POSTER(item.poster_path, 'w92')}} style={st.searchPoster} />
+        <View style={{flex: 1}}>
+          <Text style={st.searchItemTitle} numberOfLines={1}>{t}</Text>
+          <Text style={st.searchItemMeta}>{tp}{yr ? ` \u2022 ${yr}` : ''}{item.vote_average ? ` \u2022 ${item.vote_average.toFixed(1)}` : ''}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#444" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderCard = ({item}) => {
+    const t = item.title || item.name || '';
+    const yr = (item.release_date || item.first_air_date || '').slice(0, 4);
+    const r = item.vote_average ? item.vote_average.toFixed(1) : '';
+    return (
+      <TouchableOpacity style={st.card} activeOpacity={0.9} onPress={() => openDetail(item)}>
+        <Image source={{uri: POSTER(item.poster_path)}} style={st.cardPoster} resizeMode="cover" />
+        {r ? <View style={st.ratingBadge}><Text style={st.ratingText}>{r}</Text></View> : null}
+        <View style={st.cardInfo}>
+          <Text style={st.cardTitle} numberOfLines={1}>{t}</Text>
+          <Text style={st.cardYear}>{yr}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const showMovies = filter === 'all' || filter === 'movie';
+  const showTV = filter === 'all' || filter === 'tv';
+  const isSearchActive = query.trim().length >= 2;
+  const greeting = user?.displayName ? `Hey, ${user.displayName}` : 'Hey there';
+
+  const featured = movies[0];
+  const heroImg = featured ? BACKDROP(featured.backdrop_path) : null;
+  const heroTitle = featured ? (featured.title || featured.name) : '';
+  const heroSub = featured?.overview || '';
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+    <View style={st.root}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-        <TouchableOpacity onPress={() => navigation.getParent()?.openDrawer()}>
-          <MenuIcon width={24} height={24} />
-        </TouchableOpacity>
-        <Text style={styles.title}>GemStore</Text>
-        <InboxIcon style={styles.iconWrapper} />
-      </View>
+      <ScrollView
+        contentContainerStyle={{paddingBottom: bottomPad}}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
 
-      {/* Welcome Message */}
-      <Text style={styles.header}>
-        {user?.displayName ? `Welcome, ${user.displayName}` : 'Welcome to Shop'}
-      </Text>
-
-      {/* Gender Tabs */}
-      <CategoryTabs selectedKey={selectedTab} onSelect={setSelectedTab} />
-
-      {/* Content Scroll */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/*  Native Display Carousel */}
-        <TouchableOpacity
-          style={styles.bannerWrap}
-          activeOpacity={0.8}
-          onPress={() => {
-            const currentBanner = banners[activeIndex];
-            const unitId = currentBanner?.wzrk_id;
-            if (!unitId) return;
-
-            CleverTap.pushDisplayUnitClickedEventForID(unitId);
-
-            const url =
-              currentBanner?.action?.url?.android?.text ||
-              currentBanner?.action?.url?.ios?.text ||
-              currentBanner?.action?.url?.text;
-
-            console.log('👉 Clicked banner URL:', url);
-
-            if (url) {
-              Linking.openURL(url)
-                .then(() => console.log('Opened URL:', url))
-                .catch(err => console.error('Failed to open URL:', err));
-            } else {
-              alert('No valid URL found');
-            }
-          }}>
-          {imageUrls.length > 0 ? (
-            <Image
-              source={{uri: imageUrls[activeIndex]}}
-              style={styles.banner}
-              resizeMode="cover"
-            />
+        {/* ═══════════ HERO ═══════════ */}
+        <View style={st.hero}>
+          {heroImg ? (
+            <Image source={{uri: heroImg}} style={st.heroImg} resizeMode="cover" />
           ) : (
-            <Image
-              source={require('../../assets/Banner_main.jpeg')}
-              style={styles.banner}
-              resizeMode="cover"
-            />
+            <Image source={require('../../assets/Banner_main.jpeg')} style={st.heroImg} resizeMode="cover" />
           )}
-          <Text style={styles.bannerText}>Autumn Collection 2025</Text>
 
-          {/* Dots */}
-          <View style={styles.dotContainer}>
-            {imageUrls.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.dot,
-                  activeIndex === index ? styles.activeDot : null,
-                ]}
-              />
-            ))}
+          {/* Smooth 5-layer gradient for seamless blend */}
+          <View style={[st.gradLayer, {top: 0, height: '20%', backgroundColor: 'rgba(13,13,13,0.05)'}]} />
+          <View style={[st.gradLayer, {top: '20%', height: '20%', backgroundColor: 'rgba(13,13,13,0.15)'}]} />
+          <View style={[st.gradLayer, {top: '40%', height: '20%', backgroundColor: 'rgba(13,13,13,0.4)'}]} />
+          <View style={[st.gradLayer, {top: '60%', height: '20%', backgroundColor: 'rgba(13,13,13,0.75)'}]} />
+          <View style={[st.gradLayer, {top: '80%', height: '20%', backgroundColor: 'rgba(13,13,13,0.95)'}]} />
+
+          {/* Top bar */}
+          <View style={[st.topBar, {paddingTop: insets.top + 6}]}>
+            <TouchableOpacity style={st.topIcon} onPress={() => navigation.getParent()?.openDrawer()}>
+              <Ionicons name="menu" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={st.greeting} numberOfLines={1}>{greeting}</Text>
+            <InboxIcon style={st.topIcon} />
           </View>
-        </TouchableOpacity>
 
-        {/* Product Sections */}
-        {loading ? (
-          <ActivityIndicator style={{margin: 24}} />
-        ) : (
-          sections.map(sec => (
-            <View key={sec.key}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{sec.label}</Text>
-                
-              </View>
-              <FlatList
-                data={sectionsData[sec.key] || []}
-                keyExtractor={i => String(i.id)}
-                renderItem={renderCard}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.list}
-              />
+          {/* Hero content — overlaid on the image */}
+          <View style={st.heroContent}>
+            {heroTitle ? (
+              <>
+                <Text style={st.heroTag}>FEATURED</Text>
+                <Text style={st.heroTitle} numberOfLines={1}>{heroTitle}</Text>
+                <Text style={st.heroSub} numberOfLines={2}>{heroSub}</Text>
+              </>
+            ) : null}
+            <View style={st.heroBtns}>
+              <TouchableOpacity style={st.watchBtn} activeOpacity={0.85} onPress={() => featured && openDetail(featured)}>
+                <Ionicons name="play" size={16} color="#FFF" />
+                <Text style={st.watchBtnText}>Watch Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={st.infoBtn} activeOpacity={0.85} onPress={() => featured && openDetail(featured)}>
+                <Ionicons name="information-circle-outline" size={18} color="#FFF" />
+                <Text style={st.infoBtnText}>More Info</Text>
+              </TouchableOpacity>
             </View>
-          ))
+          </View>
+        </View>
+
+        {/* ═══════════ CONTENT ═══════════ */}
+
+        {/* Search */}
+        <View style={st.searchWrap}>
+          <View style={st.searchBar}>
+            <Ionicons name="search-outline" size={18} color="#555" />
+            <TextInput
+              style={st.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search movies, TV series..."
+              placeholderTextColor="#444"
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => { setQuery(''); setSearchResults([]); }}>
+                <Ionicons name="close-circle" size={18} color="#444" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {isSearchActive && (
+            <View style={st.searchDrop}>
+              {searching ? (
+                <ActivityIndicator style={{padding: 16}} color="#5E35B1" />
+              ) : searchResults.length > 0 ? (
+                <FlatList
+                  data={searchResults.slice(0, 6)}
+                  keyExtractor={i => `s-${i.id}`}
+                  renderItem={renderSearchResult}
+                  keyboardShouldPersistTaps="handled"
+                  scrollEnabled={false}
+                />
+              ) : (
+                <Text style={st.noRes}>No results found</Text>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Filter chips */}
+        <View style={st.chipRow}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f.key}
+              style={[st.chip, filter === f.key && st.chipOn]}
+              onPress={() => setFilter(f.key)}>
+              <Text style={[st.chipText, filter === f.key && st.chipTextOn]}>{f.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Trending */}
+        {loading ? (
+          <ActivityIndicator style={{marginTop: 40}} size="large" color="#5E35B1" />
+        ) : (
+          <>
+            {showMovies && movies.length > 0 && (
+              <View style={st.section}>
+                <Text style={st.sectionTitle}>Trending Movies</Text>
+                <FlatList data={movies} keyExtractor={i => `m-${i.id}`} renderItem={renderCard} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.hList} />
+              </View>
+            )}
+            {showTV && tvShows.length > 0 && (
+              <View style={st.section}>
+                <Text style={st.sectionTitle}>Trending TV Series</Text>
+                <FlatList data={tvShows} keyExtractor={i => `t-${i.id}`} renderItem={renderCard} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.hList} />
+              </View>
+            )}
+          </>
         )}
+
+        {/* Test button */}
+        <TouchableOpacity style={st.testBtn} activeOpacity={0.7} onPress={() => CleverTapSecondary.recordEvent('test instance')}>
+          <Text style={st.testBtnText}>Test Secondary Instance</Text>
+        </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#fff'},
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginTop: Platform.OS === 'ios' ? 16 : 0,
+const st = StyleSheet.create({
+  root: {flex: 1, backgroundColor: '#0D0D0D'},
+
+  // ── Hero ──────────────────────────────────────────────
+  hero: {width, height: HERO_H},
+  heroImg: {width, height: HERO_H, position: 'absolute'},
+  gradLayer: {position: 'absolute', left: 0, right: 0},
+
+  topBar: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, zIndex: 5,
   },
-  title: {fontSize: 18, fontWeight: '700'},
-  iconWrapper: {padding: 8},
-  header: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 32,
+  topIcon: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  scrollContent: {paddingBottom: 32},
-  bannerWrap: {marginTop: 16, paddingHorizontal: 24, alignItems: 'center'},
-  banner: {width: '100%', height: 160, borderRadius: 16},
-  bannerText: {
-    position: 'absolute',
-    bottom: 16,
-    left: 32,
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
+  greeting: {
+    flex: 1, textAlign: 'center',
+    fontSize: 17, fontWeight: '700', color: '#FFF',
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 4,
   },
-  dotContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
+
+  heroContent: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 20, paddingBottom: 16,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginHorizontal: 4,
+  heroTag: {
+    fontSize: 11, fontWeight: '800', color: '#B39DDB',
+    letterSpacing: 2, marginBottom: 6,
   },
-  activeDot: {
-    backgroundColor: '#30241F',
-    width: 10,
-    height: 10,
+  heroTitle: {
+    fontSize: 28, fontWeight: '900', color: '#FFF',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: {width: 0, height: 2}, textShadowRadius: 8,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: 24,
+  heroSub: {
+    fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 19, marginBottom: 16,
   },
-  sectionTitle: {fontSize: 18, fontWeight: '700', color: '#1A1A1A'},
-  showAll: {fontSize: 14, color: '#007AFF'},
-  list: {paddingLeft: 24, paddingTop: 16, paddingBottom: 24},
-  card: {width: CARD_W, marginRight: 16},
-  image: {width: CARD_W, height: CARD_W, borderRadius: 8},
-  name: {marginTop: 8, fontSize: 14, color: '#1A1A1A'},
-  price: {marginTop: 4, fontSize: 14, fontWeight: '600', color: '#30241F'},
+  heroBtns: {flexDirection: 'row', gap: 12},
+  watchBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: '#5E35B1',
+    paddingHorizontal: 22, paddingVertical: 11, borderRadius: 24,
+  },
+  watchBtnText: {color: '#FFF', fontSize: 14, fontWeight: '700'},
+  infoBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 18, paddingVertical: 11, borderRadius: 24,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  infoBtnText: {color: '#FFF', fontSize: 14, fontWeight: '600'},
+
+  // ── Search ────────────────────────────────────────────
+  searchWrap: {marginHorizontal: 16, marginTop: 18, zIndex: 10},
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12, paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 4,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
+  searchInput: {flex: 1, fontSize: 14, color: '#FFF'},
+  searchDrop: {
+    backgroundColor: '#161618', borderRadius: 12, marginTop: 4,
+    overflow: 'hidden', borderWidth: 1, borderColor: '#222',
+  },
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#1C1C1F', gap: 10,
+  },
+  searchPoster: {width: 36, height: 52, borderRadius: 5, backgroundColor: '#222'},
+  searchItemTitle: {fontSize: 13, fontWeight: '600', color: '#EEE'},
+  searchItemMeta: {fontSize: 11, color: '#666', marginTop: 2},
+  noRes: {padding: 18, textAlign: 'center', color: '#444', fontSize: 13},
+
+  // ── Chips ─────────────────────────────────────────────
+  chipRow: {flexDirection: 'row', paddingHorizontal: 16, marginTop: 18, gap: 8},
+  chip: {
+    paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'transparent',
+  },
+  chipOn: {backgroundColor: '#5E35B1', borderColor: '#5E35B1'},
+  chipText: {fontSize: 13, fontWeight: '600', color: '#777'},
+  chipTextOn: {color: '#FFF'},
+
+  // ── Sections ──────────────────────────────────────────
+  section: {marginTop: 26},
+  sectionTitle: {
+    fontSize: 17, fontWeight: '700', color: '#FFF',
+    paddingHorizontal: 16, marginBottom: 12,
+  },
+  hList: {paddingLeft: 16, paddingRight: 6},
+
+  // ── Cards ─────────────────────────────────────────────
+  card: {
+    width: CARD_W, marginRight: 10, borderRadius: 10,
+    backgroundColor: '#141416', overflow: 'hidden',
+  },
+  cardPoster: {width: CARD_W, height: POSTER_H, backgroundColor: '#1A1A1E'},
+  ratingBadge: {
+    position: 'absolute', top: 6, right: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+  },
+  ratingText: {color: '#FFD700', fontSize: 10, fontWeight: '800'},
+  cardInfo: {paddingHorizontal: 8, paddingVertical: 8},
+  cardTitle: {fontSize: 12, fontWeight: '600', color: '#DDD'},
+  cardYear: {fontSize: 11, color: '#555', marginTop: 2},
+
+  // ── Test ──────────────────────────────────────────────
+  testBtn: {
+    marginHorizontal: 16, marginTop: 30,
+    paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  testBtnText: {color: '#444', fontSize: 13, fontWeight: '600'},
 });

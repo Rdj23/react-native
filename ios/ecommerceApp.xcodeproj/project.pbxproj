@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		057F5001041F09F749C92A76 /* CleverTapSecondary.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFA97DC03D6C9375A32850B4 /* CleverTapSecondary.swift */; };
 		0943CEF12E21A33A00755407 /* NotificationCT.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0943CEEA2E21A33A00755407 /* NotificationCT.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		09AECB972E0E542400ABF168 /* GoogleService-Info.plist in Sources */ = {isa = PBXBuildFile; fileRef = 0993B7242DF6D8E6008E58AE /* GoogleService-Info.plist */; };
 		09FA8EA12E224186000678ED /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 09FA8EA02E224185000678ED /* UserNotifications.framework */; };
@@ -19,6 +20,7 @@
 		78738866841C2B026282B3FC /* Pods_NotificationCT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FF015B3EC9B9EE9B6674ED4A /* Pods_NotificationCT.framework */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		A1E61E9D8A17644359EC951D /* Pods_ecommerceApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E76F4E14D224D3B2B07A0CAB /* Pods_ecommerceApp.framework */; };
+		FCF4F26D15B31C10D5C1E1A0 /* CleverTapSecondaryBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 808DBB7415A64F165B8A0405 /* CleverTapSecondaryBridge.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,17 +71,19 @@
 		4E299EF11DB4F4E9D3DFB10A /* Pods-ecommerceApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ecommerceApp.release.xcconfig"; path = "Target Support Files/Pods-ecommerceApp/Pods-ecommerceApp.release.xcconfig"; sourceTree = "<group>"; };
 		57CD4F06D5426E9EE98FEE03 /* Pods-NotificationContentDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationContentDemo.debug.xcconfig"; path = "Target Support Files/Pods-NotificationContentDemo/Pods-NotificationContentDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ecommerceApp/AppDelegate.swift; sourceTree = "<group>"; };
+		808DBB7415A64F165B8A0405 /* CleverTapSecondaryBridge.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = CleverTapSecondaryBridge.m; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ecommerceApp/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B35A5E600BDDD4E6203E8FE0 /* Pods-NotificationCT.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationCT.release.xcconfig"; path = "Target Support Files/Pods-NotificationCT/Pods-NotificationCT.release.xcconfig"; sourceTree = "<group>"; };
 		B5202D9A5D552883CA886240 /* Pods-NotificationCT.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationCT.debug.xcconfig"; path = "Target Support Files/Pods-NotificationCT/Pods-NotificationCT.debug.xcconfig"; sourceTree = "<group>"; };
 		CB4CCF0376D164626B1BB5FB /* Pods-NotificationContentDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NotificationContentDemo.release.xcconfig"; path = "Target Support Files/Pods-NotificationContentDemo/Pods-NotificationContentDemo.release.xcconfig"; sourceTree = "<group>"; };
+		CFA97DC03D6C9375A32850B4 /* CleverTapSecondary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CleverTapSecondary.swift; sourceTree = "<group>"; };
 		E76F4E14D224D3B2B07A0CAB /* Pods_ecommerceApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ecommerceApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FF015B3EC9B9EE9B6674ED4A /* Pods_NotificationCT.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NotificationCT.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		099057C42E0DD1AB004671C3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		099057C42E0DD1AB004671C3 /* Exceptions for "resources" folder in "ecommerceApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Ionicons.ttf,
@@ -91,9 +95,40 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0943CEEB2E21A33A00755407 /* NotificationCT */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NotificationCT; sourceTree = "<group>"; };
-		09D036C02DF77CED00CCF58D /* resources */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (099057C42E0DD1AB004671C3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = resources; sourceTree = "<group>"; };
-		09FA8EA42E224186000678ED /* NotificationContentDemo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NotificationContentDemo; sourceTree = "<group>"; };
+		0943CEEB2E21A33A00755407 /* NotificationCT */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = NotificationCT;
+			sourceTree = "<group>";
+		};
+		09D036C02DF77CED00CCF58D /* resources */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				099057C42E0DD1AB004671C3 /* Exceptions for "resources" folder in "ecommerceApp" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = resources;
+			sourceTree = "<group>";
+		};
+		09FA8EA42E224186000678ED /* NotificationContentDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = NotificationContentDemo;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +172,8 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				0993B7242DF6D8E6008E58AE /* GoogleService-Info.plist */,
+				CFA97DC03D6C9375A32850B4 /* CleverTapSecondary.swift */,
+				808DBB7415A64F165B8A0405 /* CleverTapSecondaryBridge.m */,
 			);
 			name = ecommerceApp;
 			sourceTree = "<group>";
@@ -477,6 +514,8 @@
 			files = (
 				09AECB972E0E542400ABF168 /* GoogleService-Info.plist in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				057F5001041F09F749C92A76 /* CleverTapSecondary.swift in Sources */,
+				FCF4F26D15B31C10D5C1E1A0 /* CleverTapSecondaryBridge.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -810,7 +849,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -890,7 +932,10 @@
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
 				);
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

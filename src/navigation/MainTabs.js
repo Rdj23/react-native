@@ -1,80 +1,57 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import HomeStack from './HomeStack';
-import SearchStack from './SearchStack';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import WishlistScreen from '../screens/WishlistScreen';
-
-import {useCart} from '../context/CartContext';
-
+import {useMovieCart} from '../context/MovieCartContext';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
-  const {totalQuantity} = useCart();
+  const {cartCount} = useMovieCart();
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
         headerShown: false,
         tabBarIcon: ({focused, color, size}) => {
           let iconName;
-
           switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Search':
-              iconName = 'search';
-              break;
-            case 'Cart':
-              iconName = focused ? 'cart' : 'cart-outline';
-              break;
-            case 'Profile':
-              iconName = focused ? 'person' : 'person-outline';
-              break;
-            case 'Wishlist':
-              iconName = focused ? 'heart-circle' : 'heart-circle-outline'  
-              break;
-            default:
-              iconName = 'help-circle-outline';
+            case 'Home': iconName = focused ? 'home' : 'home-outline'; break;
+            case 'Cart': iconName = focused ? 'cart' : 'cart-outline'; break;
+            case 'Profile': iconName = focused ? 'person' : 'person-outline'; break;
+            default: iconName = 'help-circle-outline';
           }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={22} color={color} />;
         },
-        tabBarActiveTintColor: '#30241F',
-        tabBarInactiveTintColor: '#888',
-        tabBarLabelStyle: {fontSize: 12},
+        tabBarActiveTintColor: '#5E35B1',
+        tabBarInactiveTintColor: '#555',
+        tabBarLabelStyle: {fontSize: 11, fontWeight: '600', marginTop: -2},
         tabBarStyle: {
-          paddingTop: 6,
-          paddingBottom: 6,
-          height: 60,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          backgroundColor: '#fff',
-          elevation: 8,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 56 + Math.max(insets.bottom, 8),
+          backgroundColor: '#111114',
+          borderTopWidth: 1,
+          borderTopColor: '#1E1E22',
+          elevation: 0,
+          shadowOpacity: 0,
         },
       })}>
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Search" component={SearchStack} />
       <Tab.Screen
         name="Cart"
         component={CartScreen}
         options={{
-          tabBarBadge: totalQuantity > 0 ? totalQuantity : null,
-          tabBarBadgeStyle: {
-            backgroundColor: 'red',
-            color: 'white',
-            fontSize: 10,
-          },
+          tabBarBadge: cartCount > 0 ? cartCount : undefined,
+          tabBarBadgeStyle: {backgroundColor: '#5E35B1', color: '#FFF', fontSize: 10, fontWeight: '700', minWidth: 18, height: 18, borderRadius: 9, lineHeight: 18},
         }}
       />
-      <Tab.Screen name="Wishlist" component={WishlistScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-
-      
     </Tab.Navigator>
   );
 }
