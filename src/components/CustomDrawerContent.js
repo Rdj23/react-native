@@ -11,20 +11,18 @@ import {useTheme} from '../context/ThemeContext';
 export default function CustomDrawerContent({navigation}) {
   const {user, logout, mockSubscriptionTier, setMockSubscriptionTier} = useUser();
   const {cartCount} = useMovieCart();
-  const {colors, refetch} = useTheme();
+  const {colors} = useTheme();
   const insets = useSafeAreaInsets();
 
   const goToTab = t => { navigation.closeDrawer(); navigation.navigate('MainTabs', {screen: t}); };
 
-  const isPremium = mockSubscriptionTier === 'Premium';
+  const isPremium = mockSubscriptionTier === 'premium';
 
   const handleTierToggle = useCallback((value) => {
-    const newTier = value ? 'Premium' : 'Free';
+    const newTier = value ? 'premium' : 'free';
     setMockSubscriptionTier(newTier);
-    // After profileSet syncs the new tier to Dashboard 2,
-    // force a re-fetch so Product Config serves the new segment's values
-    setTimeout(() => refetch?.(), 1500);
-  }, [setMockSubscriptionTier, refetch]);
+    // fetchVariables is called automatically in UserContext right after profileSet
+  }, [setMockSubscriptionTier]);
 
   return (
     <DrawerContentScrollView contentContainerStyle={[s.wrap, {paddingTop: insets.top + 16}]}

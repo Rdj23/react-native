@@ -1,12 +1,11 @@
 /**
- * useRemoteConfig — Custom hook for CleverTap Product Experiences (Remote Config).
+ * useRemoteConfig — Custom hook for CleverTap Product Experiences (Variables).
  *
- * ─── DASHBOARD ──────────────────────────────────────────────────────────────
- * Product Experiences is available ONLY on Dashboard 2 (secondary instance).
- * This hook uses CleverTapSecondary native module for all Product Config calls.
+ * Uses the CleverTap Variables API (defineVariables → fetchVariables →
+ * onVariablesChanged / getVariables) as per the official docs:
+ * https://developer.clevertap.com/docs/react-native-remote-config
  *
- * ─── VARIABLES (declared on CleverTap Dashboard 2, inside "movie" folder) ───
- * The folder name IS part of the key — keys are "movie.variable_name".
+ * ─── VARIABLES ──────────────────────────────────────────────────────────────
  *
  *  PAYWALL VARIABLES:
  *   Key                        Type      Default
@@ -37,17 +36,14 @@
  *   greeting_text              String    "Hey there"
  *
  * ─── HOW IT WORKS ──────────────────────────────────────────────────────────
- * 1. On mount → fetchAndActivate to pull the latest values
- * 2. After a short delay → reads each key via promise-based native methods
- * 3. Listens to CleverTapProductConfigDidFetch events to re-read on updates
- * 4. Uses mountedRef guard to avoid setState after unmount
+ * 1. On mount → defineVariables with defaults, then fetchVariables
+ * 2. onVariablesChanged fires whenever values update → merges into state
+ * 3. refetch() can be called after tier change to re-evaluate segments
  */
 import {useState, useEffect, useRef, useCallback} from 'react';
-import {NativeModules, NativeEventEmitter, Platform} from 'react-native';
 import CleverTap from 'clevertap-react-native';
 
-const {CleverTapSecondary} = NativeModules;
-
+// Flat defaults used by ThemeContext and the rest of the app
 const DEFAULTS = {
   // Paywall
   allow_free_trailers: true,
@@ -76,178 +72,102 @@ const DEFAULTS = {
   greeting_text: 'Hey there',
 };
 
-// Helper: read a string key with fallback
-// Keys are prefixed with "movie." — the folder name IS part of the key.
-const getString = (key, fallback) =>
-  CleverTapSecondary.productConfigGetString(`movie.${key}`)
-    .then(v => (typeof v === 'string' && v.length > 0 ? v : fallback))
-    .catch(() => fallback);
+// Variables on the dashboard are inside the "movie" folder,
+// so defineVariables must use a nested map to match.
+const VARIABLES = {
+  movie: {...DEFAULTS},
+};
 
 // Helper: validate and normalize hex color
-// Dashboard may return "#FFD700" or "FFD700" (without #) — handle both
 const normalizeHex = (v) => {
   if (typeof v !== 'string' || v.length === 0) return null;
   const trimmed = v.trim();
-  // Already has # prefix
   if (/^#([0-9A-Fa-f]{3,8})$/.test(trimmed)) return trimmed;
-  // Missing # prefix — add it
   if (/^([0-9A-Fa-f]{3,8})$/.test(trimmed)) return `#${trimmed}`;
   return null;
 };
+
+// Build config state from raw variables object, applying type checks and defaults
+const buildConfig = (vars) => ({
+  // Paywall
+  allow_free_trailers:
+    typeof vars.allow_free_trailers === 'boolean'
+      ? vars.allow_free_trailers
+      : DEFAULTS.allow_free_trailers,
+  trailer_preview_duration:
+    typeof vars.trailer_preview_duration === 'number' && vars.trailer_preview_duration > 0
+      ? vars.trailer_preview_duration
+      : DEFAULTS.trailer_preview_duration,
+  paywall_cta_text: vars.paywall_cta_text || DEFAULTS.paywall_cta_text,
+
+  // Colors
+  primary_color: normalizeHex(vars.primary_color) || DEFAULTS.primary_color,
+  accent_color: normalizeHex(vars.accent_color) || DEFAULTS.accent_color,
+  background_color: normalizeHex(vars.background_color) || DEFAULTS.background_color,
+  surface_color: normalizeHex(vars.surface_color) || DEFAULTS.surface_color,
+  header_color: normalizeHex(vars.header_color) || DEFAULTS.header_color,
+  text_color: normalizeHex(vars.text_color) || DEFAULTS.text_color,
+  text_secondary_color: normalizeHex(vars.text_secondary_color) || DEFAULTS.text_secondary_color,
+  border_color: normalizeHex(vars.border_color) || DEFAULTS.border_color,
+  cta_text_color: normalizeHex(vars.cta_text_color) || DEFAULTS.cta_text_color,
+
+  // Strings
+  hero_tag_text: vars.hero_tag_text || DEFAULTS.hero_tag_text,
+  watch_cta_text: vars.watch_cta_text || DEFAULTS.watch_cta_text,
+  buy_cta_text: vars.buy_cta_text || DEFAULTS.buy_cta_text,
+  browse_cta_text: vars.browse_cta_text || DEFAULTS.browse_cta_text,
+  trending_movies_title: vars.trending_movies_title || DEFAULTS.trending_movies_title,
+  trending_tv_title: vars.trending_tv_title || DEFAULTS.trending_tv_title,
+  cart_title: vars.cart_title || DEFAULTS.cart_title,
+  greeting_text: vars.greeting_text || DEFAULTS.greeting_text,
+});
 
 export default function useRemoteConfig() {
   const [config, setConfig] = useState(DEFAULTS);
   const mountedRef = useRef(true);
 
-  const readValues = useCallback(async () => {
-    if (!mountedRef.current || !CleverTapSecondary) return;
-
-    try {
-      // Debug: dump all known keys to see what Dashboard 2 actually returns
-      if (CleverTapSecondary.debugProductConfig) {
-        const debugResult = await CleverTapSecondary.debugProductConfig();
-        console.log('[RemoteConfig] DEBUG DUMP:\n' + debugResult);
-      }
-
-      // Activate fetched values first
-      CleverTapSecondary.productConfigActivate?.();
-
-      // Read all values in parallel
-      const [
-        // Paywall
-        allowTrailers, previewDuration, paywallCta,
-        // Colors
-        primaryColor, accentColor, bgColor, surfaceColor,
-        headerColor, textColor, textSecColor, borderColor, ctaTextColor,
-        // Strings
-        heroTag, watchCta, buyCta, browseCta,
-        trendingMovies, trendingTv, cartTitle, greetingText,
-      ] = await Promise.all([
-        // Paywall
-        CleverTapSecondary.productConfigGetBoolean('movie.allow_free_trailers').catch(() => DEFAULTS.allow_free_trailers),
-        CleverTapSecondary.productConfigGetLong('movie.trailer_preview_duration').catch(() => DEFAULTS.trailer_preview_duration),
-        getString('paywall_cta_text', DEFAULTS.paywall_cta_text),
-        // Colors
-        getString('primary_color', DEFAULTS.primary_color),
-        getString('accent_color', DEFAULTS.accent_color),
-        getString('background_color', DEFAULTS.background_color),
-        getString('surface_color', DEFAULTS.surface_color),
-        getString('header_color', DEFAULTS.header_color),
-        getString('text_color', DEFAULTS.text_color),
-        getString('text_secondary_color', DEFAULTS.text_secondary_color),
-        getString('border_color', DEFAULTS.border_color),
-        getString('cta_text_color', DEFAULTS.cta_text_color),
-        // Strings
-        getString('hero_tag_text', DEFAULTS.hero_tag_text),
-        getString('watch_cta_text', DEFAULTS.watch_cta_text),
-        getString('buy_cta_text', DEFAULTS.buy_cta_text),
-        getString('browse_cta_text', DEFAULTS.browse_cta_text),
-        getString('trending_movies_title', DEFAULTS.trending_movies_title),
-        getString('trending_tv_title', DEFAULTS.trending_tv_title),
-        getString('cart_title', DEFAULTS.cart_title),
-        getString('greeting_text', DEFAULTS.greeting_text),
-      ]);
-
-      if (!mountedRef.current) return;
-
-      // Debug: log raw fetched values to verify what Dashboard 2 returns
-      console.log('[RemoteConfig] Raw values from Dashboard 2:', {
-        allowTrailers, previewDuration, paywallCta,
-        primaryColor, bgColor, watchCta,
-      });
-
-      setConfig({
-        // Paywall
-        allow_free_trailers: typeof allowTrailers === 'boolean' ? allowTrailers : DEFAULTS.allow_free_trailers,
-        trailer_preview_duration: typeof previewDuration === 'number' && previewDuration > 0 ? previewDuration : DEFAULTS.trailer_preview_duration,
-        paywall_cta_text: paywallCta,
-        // Colors (validate + normalize hex, fallback to default if invalid)
-        primary_color: normalizeHex(primaryColor) || DEFAULTS.primary_color,
-        accent_color: normalizeHex(accentColor) || DEFAULTS.accent_color,
-        background_color: normalizeHex(bgColor) || DEFAULTS.background_color,
-        surface_color: normalizeHex(surfaceColor) || DEFAULTS.surface_color,
-        header_color: normalizeHex(headerColor) || DEFAULTS.header_color,
-        text_color: normalizeHex(textColor) || DEFAULTS.text_color,
-        text_secondary_color: normalizeHex(textSecColor) || DEFAULTS.text_secondary_color,
-        border_color: normalizeHex(borderColor) || DEFAULTS.border_color,
-        cta_text_color: normalizeHex(ctaTextColor) || DEFAULTS.cta_text_color,
-        // Strings
-        hero_tag_text: heroTag,
-        watch_cta_text: watchCta,
-        buy_cta_text: buyCta,
-        browse_cta_text: browseCta,
-        trending_movies_title: trendingMovies,
-        trending_tv_title: trendingTv,
-        cart_title: cartTitle,
-        greeting_text: greetingText,
-      });
-    } catch (e) {
-      console.warn('useRemoteConfig: failed to read values from Dashboard 2', e);
-    }
-  }, []);
-
-  // Force re-fetch: reset cache, trigger fetch (native listener auto-activates)
+  // Force re-fetch — useful after tier/profile change for segment re-evaluation
   const refetch = useCallback(() => {
-    if (!CleverTapSecondary) return;
-    CleverTapSecondary.productConfigReset?.();
-    CleverTapSecondary.productConfigFetch?.();
-    // Native CTProductConfigListener.onFetched() will auto-activate,
-    // then onActivated() emits event → readValues fires via listener below
+    CleverTap.fetchVariables((err, success) => {
+      console.log('[RemoteConfig] refetch result:', success, err);
+    });
   }, []);
 
   useEffect(() => {
-    if (!CleverTapSecondary) {
-      console.warn('useRemoteConfig: CleverTapSecondary native module not available');
-      return;
-    }
+    // Step 1: Define variables with defaults — nested under "movie" folder to match dashboard
+    CleverTap.defineVariables(VARIABLES);
 
-    // Set minimum fetch interval and trigger fetch
-    // Native listener will auto-activate when fetch completes
-    CleverTapSecondary.productConfigSetMinimumFetchIntervalInSeconds?.(0);
-    CleverTapSecondary.productConfigFetch?.();
+    // Step 2: Sync variables to the server (registers them on the dashboard)
+    CleverTap.syncVariables();
 
-    // Listen for our custom native event when activation completes on Dashboard 2
-    const emitter = new NativeEventEmitter(NativeModules.CleverTapSecondary);
-    const activatedSub = emitter.addListener(
-      'CleverTapSecondaryProductConfigActivated',
-      () => {
-        console.log('[RemoteConfig] Native activation event received — reading values');
-        readValues();
-      },
-    );
+    // Step 3: Listen for variable changes (fires after fetch resolves with new values)
+    CleverTap.onVariablesChanged((variables) => {
+      if (!mountedRef.current) return;
+      console.log('[RemoteConfig] onVariablesChanged:', variables);
+      // Extract the "movie" folder object; fall back to flat variables if not nested
+      const movieVars = variables?.movie || variables;
+      setConfig(buildConfig(movieVars));
+    });
 
-    // Also listen for primary SDK events as backup
-    const subscriptions = [];
-    try {
-      const sub1 = CleverTap.addListener?.(
-        'CleverTapProductConfigDidFetch',
-        readValues,
-      );
-      if (sub1) subscriptions.push(sub1);
+    // Step 4: Log individual variable changes for debugging (keys are "movie.variable_name")
+    Object.keys(DEFAULTS).forEach((key) => {
+      CleverTap.onValueChanged(`movie.${key}`, (variable) => {
+        console.log(`[RemoteConfig] onValueChanged: movie.${key} =`, variable);
+      });
+    });
 
-      const sub2 = CleverTap.addListener?.(
-        'CleverTapProductConfigDidActivate',
-        readValues,
-      );
-      if (sub2) subscriptions.push(sub2);
-    } catch (e) {
-      console.warn('useRemoteConfig: listener setup failed', e);
-    }
-
-    // Fallback: read after delay in case events don't fire
-    const initialTimer = setTimeout(readValues, 5000);
-
-    // Poll periodically as fallback (every 30s)
-    const pollInterval = setInterval(readValues, 30000);
+    // Step 5: Fetch latest variable values from the dashboard
+    CleverTap.fetchVariables((err, success) => {
+      if (err) {
+        console.warn('[RemoteConfig] fetchVariables error:', err);
+      }
+      console.log('[RemoteConfig] fetchVariables success:', success);
+    });
 
     return () => {
       mountedRef.current = false;
-      clearTimeout(initialTimer);
-      clearInterval(pollInterval);
-      activatedSub?.remove?.();
-      subscriptions.forEach(sub => sub?.remove?.());
     };
-  }, [readValues]);
+  }, []);
 
   return {config, refetch};
 }

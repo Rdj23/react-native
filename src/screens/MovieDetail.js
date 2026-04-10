@@ -133,7 +133,7 @@ export default function MovieDetail({route, navigation}) {
   const insets = useSafeAreaInsets();
   const {colors, strings, paywall} = useTheme();
 
-  const isPremium = mockSubscriptionTier === 'Premium';
+  const isPremium = mockSubscriptionTier === 'premium';
 
   const [cast, setCast] = useState([]);
   const [trailerKey, setTrailerKey] = useState(null);

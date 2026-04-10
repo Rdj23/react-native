@@ -10,13 +10,20 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null);   //to manage global state of the user around the application.
   const [isLoggedIn, setIsLoggedIn] = useState(false); //check if the user is logged in or not and then decide to show the app or auth screens.
   const [ready, setReady] = useState(false); //to avoid login screen for split of second , the RN component rendered before async finish.
-  const [mockSubscriptionTier, setMockSubscriptionTier] = useState('Free'); // 'Free' or 'Premium' — dev toggle for paywall testing
+  const [mockSubscriptionTier, setMockSubscriptionTier] = useState('free'); // 'free' or 'premium' — dev toggle for paywall testing
 
   // Sync subscription tier to both dashboards whenever it changes
+  // Per docs: after updating user properties used in PE segments,
+  // immediately call fetchVariables to re-evaluate segments
   useEffect(() => {
     if (isLoggedIn) {
       CleverTap.profileSet({ 'Subscription Tier': mockSubscriptionTier });
       CleverTapSecondary?.profileSet?.({ 'Subscription Tier': mockSubscriptionTier });
+
+      // Re-evaluate PE segments immediately after profile update
+      CleverTap.fetchVariables((err, success) => {
+        console.log('[UserContext] fetchVariables after tier change:', success, err);
+      });
     }
   }, [mockSubscriptionTier, isLoggedIn]);
 
