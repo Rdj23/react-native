@@ -16,7 +16,8 @@
  *  'Removed from Cart'  → when user taps trash on an item
  *                         props: Title, Type, ID, Price
  *  'Content Viewed'     → when user taps a "You May Also Like" card
- *                         props: Title, Type, ID, Source: 'Cart Similar'
+ *                         props: Movie ID, Movie Title, Genre, Release_date,
+ *                         Rating, poster_url, backdrop_url
  *  recordChargedEvent() → on "Buy Now" tap; CleverTap's reserved purchase event
  *                         charge details: Amount, Payment Mode, Charged ID,
  *                         Items Count, nested CartSummary object
@@ -52,7 +53,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CleverTap from 'clevertap-react-native';
 import {useMovieCart} from '../context/MovieCartContext';
 import {useTheme} from '../context/ThemeContext';
-import {fetchTrendingMovies, fetchTrendingTV, POSTER, BACKDROP} from '../services/tmdb';
+import {fetchTrendingMovies, fetchTrendingTV, POSTER, BACKDROP, genreNames} from '../services/tmdb';
+import {formatPrice} from '../utils/pricing';
 
 const {width} = Dimensions.get('window');
 const SIMILAR_CARD_W = (width - 48) / 2.8;
@@ -137,22 +139,32 @@ export default function CartScreen({navigation}) {
     item => {
       const itemTitle = item.title || item.name || '';
       const itemType = item.media_type || (item.first_air_date ? 'tv' : 'movie');
+      const genre = genreNames(item.genre_ids);
+      const rating = item.vote_average || 0;
+      const releaseDate = item.release_date || item.first_air_date || '';
+      const posterUrl = POSTER(item.poster_path, 'w780');
+      const backdropUrl = BACKDROP(item.backdrop_path);
 
       CleverTap.recordEvent('Content Viewed', {
-        Title: itemTitle,
-        Type: itemType,
-        ID: item.id,
-        Source: 'Cart Similar',
+        'Movie ID': item.id,
+        'Movie Title': itemTitle,
+        Genre: genre,
+        Release_date: releaseDate,
+        Rating: rating,
+        poster_url: posterUrl || '',
+        backdrop_url: backdropUrl || '',
       });
 
       navigation.navigate('MovieDetail', {
         id: item.id,
         title: itemTitle,
-        image: POSTER(item.poster_path, 'w780'),
-        release_date: item.release_date || item.first_air_date || '',
+        image: posterUrl,
+        release_date: releaseDate,
         overview: item.overview || '',
         type: itemType,
-        backdrop: BACKDROP(item.backdrop_path),
+        backdrop: backdropUrl,
+        genre,
+        rating,
       });
     },
     [navigation],
@@ -170,7 +182,7 @@ export default function CartScreen({navigation}) {
           {(item.type || '').toUpperCase()}
           {item.releaseDate ? ` \u2022 ${item.releaseDate.slice(0, 4)}` : ''}
         </Text>
-        <Text style={[styles.cartPrice, {color: colors.primary}]}>${item.price.toFixed(2)}</Text>
+        <Text style={[styles.cartPrice, {color: colors.primary}]}>{formatPrice(item.price)}</Text>
       </View>
       <TouchableOpacity
         style={styles.removeBtn}
@@ -277,7 +289,7 @@ export default function CartScreen({navigation}) {
                     {item.title}
                   </Text>
                   <Text style={styles.summaryValue}>
-                    ${item.price.toFixed(2)}
+                    {formatPrice(item.price)}
                   </Text>
                 </View>
               ))}
@@ -285,7 +297,7 @@ export default function CartScreen({navigation}) {
               <View style={[styles.summaryRow]}>
                 <Text style={[styles.summaryTotal, {color: colors.text}]}>Total</Text>
                 <Text style={[styles.summaryTotalValue, {color: colors.primary}]}>
-                  ${totalAmount.toFixed(2)}
+                  {formatPrice(totalAmount)}
                 </Text>
               </View>
             </View>
@@ -297,7 +309,7 @@ export default function CartScreen({navigation}) {
               onPress={handleBuyNow}>
               <Ionicons name="bag-check-outline" size={20} color={colors.ctaText} />
               <Text style={[styles.buyBtnText, {color: colors.ctaText}]}>
-                {strings.buyCta} — ${totalAmount.toFixed(2)}
+                {strings.buyCta} — {formatPrice(totalAmount)}
               </Text>
             </TouchableOpacity>
 
@@ -330,7 +342,7 @@ export default function CartScreen({navigation}) {
             </View>
             <Text style={[styles.modalTitle, {color: colors.text}]}>Purchase Complete</Text>
             <Text style={styles.modalSub}>
-              You bought {successModal.count} item{successModal.count > 1 ? 's' : ''} for ${successModal.amount.toFixed(2)}
+              You bought {successModal.count} item{successModal.count > 1 ? 's' : ''} for {formatPrice(successModal.amount)}
             </Text>
             <TouchableOpacity
               style={[styles.modalBtn, {backgroundColor: colors.primary}]}

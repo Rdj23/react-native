@@ -9,12 +9,13 @@
  *     • Premium users: full trailer playback
  *     • Free users: playback auto-pauses at trailer_preview_duration (from Remote Config)
  *       and a glassmorphism paywall overlay appears with lock icon + CTA
- *  5. Rent options — 7 Days ($2.99) / 1 Month ($5.99) / 3 Months ($12.99)
- *  6. Add to Cart button ($14.99)
+ *  5. Rent options — 7 Days / 1 Month / 3 Months (priced per title)
+ *  6. Add to Cart button (buy price computed per title — see utils/pricing.js)
  *
  * ─── CLEVERTAP EVENTS FIRED HERE ────────────────────────────────────────────
  *  Dashboard 1 (Primary):
- *    'Content Viewed'      → on mount
+ *    'Content Viewed'      → on mount; props: Movie ID, Movie Title, Genre,
+ *                            Release_date, Rating, poster_url, backdrop_url
  *    'Trailer Viewed'      → once when trailerKey resolves
  *    'Movie Rented'        → after rental confirmation
  *    'Add to Cart'         → when user taps cart button
@@ -49,6 +50,7 @@ import {useMovieCart} from '../context/MovieCartContext';
 import {useUser} from '../context/UserContext';
 import {useTheme} from '../context/ThemeContext';
 import CleverTapSecondary from '../services/CleverTapSecondary';
+import {getBuyPrice, getRentalPlans, formatPrice} from '../utils/pricing';
 
 const {width} = Dimensions.get('window');
 const PLAYER_HEIGHT = Math.round((width * 9) / 16); // 16:9 aspect ratio
@@ -59,14 +61,6 @@ const DURATIONS_MS = {
   '1m': 30 * 24 * 60 * 60 * 1000,
   '3m': 90 * 24 * 60 * 60 * 1000,
 };
-
-const RENTAL_PLANS = [
-  {key: '7d', label: '7 Days', price: 2.99},
-  {key: '1m', label: '1 Month', price: 5.99},
-  {key: '3m', label: '3 Months', price: 12.99},
-];
-
-const BUY_PRICE = 14.99;
 
 // ─── Custom Toast Component ─────────────────────────────────────────
 function Toast({visible, message, type, onDismiss}) {
@@ -126,7 +120,13 @@ export default function MovieDetail({route, navigation}) {
     overview = '',
     type = 'movie',
     backdrop = '',
+    genre = '',
+    rating = 0,
   } = route?.params || {};
+
+  // Per-title pricing — derived from rating, release year, and ID
+  const buyPrice = getBuyPrice({id, rating, releaseDate: release_date});
+  const rentalPlans = getRentalPlans(buyPrice);
 
   const {addToCart} = useMovieCart();
   const {mockSubscriptionTier} = useUser();
@@ -172,10 +172,13 @@ export default function MovieDetail({route, navigation}) {
     }
 
     CleverTap.recordEvent('Content Viewed', {
-      Title: title,
-      Type: type,
-      ID: id,
-      'Release Date': release_date,
+      'Movie ID': id,
+      'Movie Title': title,
+      Genre: genre,
+      Release_date: release_date,
+      Rating: rating,
+      poster_url: image || '',
+      backdrop_url: backdrop || '',
     });
 
     const ctrl = new AbortController();
@@ -332,7 +335,7 @@ export default function MovieDetail({route, navigation}) {
       'Last Rental Expiry': '$D_' + Math.floor(expiryEpoch / 1000),
     });
 
-    showToast(`Rented "${title}" for ${plan.label} at $${plan.price.toFixed(2)}`);
+    showToast(`Rented "${title}" for ${plan.label} at ${formatPrice(plan.price)}`);
   };
 
   // ─── Add to Cart handler ───────────────────────────────────────
@@ -344,7 +347,7 @@ export default function MovieDetail({route, navigation}) {
       posterPath: image,
       releaseDate: release_date,
       overview,
-      price: BUY_PRICE,
+      price: buyPrice,
       backdrop,
     };
 
@@ -354,7 +357,7 @@ export default function MovieDetail({route, navigation}) {
       Title: title,
       Type: type,
       ID: id,
-      Price: BUY_PRICE,
+      Price: buyPrice,
       MovieDetails: {
         'Release Date': release_date,
         Overview: overview ? overview.substring(0, 200) : '',
@@ -513,7 +516,7 @@ export default function MovieDetail({route, navigation}) {
           </Text>
           <Text style={styles.rentHint}>Choose a rental duration</Text>
           <View style={styles.rentalRow}>
-            {RENTAL_PLANS.map(plan => {
+            {rentalPlans.map(plan => {
               const isSelected = selectedRental === plan.key;
               return (
                 <TouchableOpacity
@@ -530,7 +533,7 @@ export default function MovieDetail({route, navigation}) {
                     {plan.label}
                   </Text>
                   <Text style={[styles.rentalPrice, {color: colors.primary}, isSelected && {color: colors.ctaText}]}>
-                    ${plan.price.toFixed(2)}
+                    {formatPrice(plan.price)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -546,7 +549,7 @@ export default function MovieDetail({route, navigation}) {
             onPress={handleAddToCart}>
             <Ionicons name="cart-outline" size={20} color={colors.ctaText} />
             <Text style={[styles.addToCartText, {color: colors.ctaText}]}>
-              Add to Cart — ${BUY_PRICE.toFixed(2)}
+              Add to Cart — {formatPrice(buyPrice)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -582,7 +585,7 @@ export default function MovieDetail({route, navigation}) {
             <View style={modalStyles.priceRow}>
               <Text style={modalStyles.priceLabel}>Price</Text>
               <Text style={modalStyles.priceValue}>
-                ${confirmModal.plan?.price.toFixed(2)}
+                {confirmModal.plan ? formatPrice(confirmModal.plan.price) : ''}
               </Text>
             </View>
             <View style={modalStyles.priceRow}>

@@ -20,6 +20,21 @@ const BACKDROP = (path, size = 'w780') =>
 const PROFILE = (path, size = 'w185') =>
   path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 
+// TMDB genre ID → name map (movie + TV genres combined)
+const GENRES = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance',
+  878: 'Science Fiction', 10770: 'TV Movie', 53: 'Thriller', 10752: 'War',
+  37: 'Western', 10759: 'Action & Adventure', 10762: 'Kids', 10763: 'News',
+  10764: 'Reality', 10765: 'Sci-Fi & Fantasy', 10766: 'Soap', 10767: 'Talk',
+  10768: 'War & Politics',
+};
+
+/** Convert TMDB genre_ids array to a comma-separated genre name string */
+const genreNames = (ids = []) =>
+  (ids || []).map(id => GENRES[id]).filter(Boolean).join(', ');
+
 /**
  * Generic TMDB fetcher with error handling.
  *
@@ -80,6 +95,8 @@ export {
   POSTER,
   BACKDROP,
   PROFILE,
+  GENRES,
+  genreNames,
   tmdbFetch,
   fetchTrendingMovies,
   fetchTrendingTV,

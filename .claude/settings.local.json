@@ -2,7 +2,33 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:developer.clevertap.com)",
-      "Bash(npx react-native:*)"
+      "Bash(npx react-native:*)",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(./gradlew assembleRelease)",
+      "Bash(adb devices *)",
+      "Bash(emulator -list-avds)",
+      "Bash(adb -s emulator-5554 shell df -h /data)",
+      "Bash(adb -s emulator-5554 shell pm list packages -3)",
+      "Bash(adb -s emulator-5554 uninstall com.example.ctandroid)",
+      "Bash(adb -s emulator-5554 uninstall com.ecommerceapp)",
+      "Bash(command -v emulator)",
+      "Bash(adb shell *)",
+      "Bash(adb uninstall *)",
+      "Bash(adb install *)",
+      "Bash(~/Library/Android/sdk/emulator/emulator -list-avds)",
+      "Bash(adb -s emulator-5554 emu kill)",
+      "Bash(~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_35 -wipe-data -no-snapshot-load > /tmp/emulator-boot.log 2>&1 & *)",
+      "Bash(adb reverse *)",
+      "Bash(~/Library/Android/sdk/emulator/emulator -avd Pixel_6a -no-snapshot-load > /tmp/pixel6a-boot.log 2>&1 & *)",
+      "Bash(npm run *)",
+      "Bash(npm start *)",
+      "Bash(xcodebuild build *)",
+      "Bash(node -e ' *)"
+    ],
+    "additionalDirectories": [
+      "/Users/rohan.jadhav/Desktop/react-native/ecommerceApp/android/app/build/outputs/apk/debug",
+      "/Users/rohan.jadhav/Desktop",
+      "/tmp"
     ]
   }
 }

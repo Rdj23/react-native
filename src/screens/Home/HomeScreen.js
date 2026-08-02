@@ -16,7 +16,8 @@
  *  'HomeScreen Launched'   → on mount; signals home visit in analytics
  *  'Trending Loaded'       → after TMDB fetch succeeds; includes movie/TV counts
  *  'Content Viewed'        → when user taps any card or search result;
- *                            carries Title, Type (movie/tv), and TMDB ID
+ *                            carries Movie ID, Movie Title, Genre, Release_date,
+ *                            Rating, poster_url, backdrop_url
  *
  * ─── SECONDARY INSTANCE USAGE ────────────────────────────────────────────────
  *  CleverTapSecondary.recordEvent('test instance') is wired to the "Test
@@ -52,6 +53,7 @@ import {
   searchMulti,
   POSTER,
   BACKDROP,
+  genreNames,
 } from '../../services/tmdb';
 
 const {width, height: SCREEN_H} = Dimensions.get('window');
@@ -124,14 +126,29 @@ export default function HomeScreen({navigation}) {
   const openDetail = useCallback(item => {
     const t = item.title || item.name || '';
     const tp = item.media_type || (item.first_air_date ? 'tv' : 'movie');
-    CleverTap.recordEvent('Content Viewed', {Title: t, Type: tp, ID: item.id});
+    const genre = genreNames(item.genre_ids);
+    const rating = item.vote_average || 0;
+    const releaseDate = item.release_date || item.first_air_date || '';
+    const posterUrl = POSTER(item.poster_path, 'w780');
+    const backdropUrl = BACKDROP(item.backdrop_path);
+    CleverTap.recordEvent('Content Viewed', {
+      'Movie ID': item.id,
+      'Movie Title': t,
+      Genre: genre,
+      Release_date: releaseDate,
+      Rating: rating,
+      poster_url: posterUrl || '',
+      backdrop_url: backdropUrl || '',
+    });
     setQuery(''); setSearchResults([]);
     navigation.navigate('MovieDetail', {
       id: item.id, title: t,
-      image: POSTER(item.poster_path, 'w780'),
-      release_date: item.release_date || item.first_air_date || '',
+      image: posterUrl,
+      release_date: releaseDate,
       overview: item.overview || '', type: tp,
-      backdrop: BACKDROP(item.backdrop_path),
+      backdrop: backdropUrl,
+      genre,
+      rating,
     });
   }, [navigation]);
 
