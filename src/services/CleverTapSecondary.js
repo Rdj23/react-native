@@ -30,12 +30,30 @@
  *    recordChargedEvent(chargeDetails, items) → Charged event (purchase)
  *    profileSet(profileData)              → updates user profile on Dashboard 2
  *
+ *  Variables (Product Experiences) — resolve against Dashboard 2, where the
+ *  PE Variables are actually defined:
+ *    defineVariables(variablesObject)     → register variables with defaults
+ *    syncVariables()                      → upload definitions (debug builds, test profile)
+ *    fetchVariables()                     → returns a Promise<boolean> for fetch success
+ *    onVariablesChanged()                 → arms the native listener; use
+ *                                            addSecondaryVariablesChangedListener()
+ *                                            below to receive the resolved values in JS
+ *
  * ─── USAGE ───────────────────────────────────────────────────────────────────
- *   import CleverTapSecondary from '../services/CleverTapSecondary';
+ *   import CleverTapSecondary, {addSecondaryVariablesChangedListener} from '../services/CleverTapSecondary';
  *   CleverTapSecondary.recordEvent('test instance');
  *   CleverTapSecondary.recordEventWithProps('Purchase', { amount: 100 });
+ *
+ *   CleverTapSecondary.defineVariables({ movie: { primary_color: '#5E35B1' } });
+ *   CleverTapSecondary.syncVariables();
+ *   const subscription = addSecondaryVariablesChangedListener((variables) => {
+ *     console.log(variables.movie.primary_color);
+ *   });
+ *   CleverTapSecondary.onVariablesChanged();
+ *   CleverTapSecondary.fetchVariables().then((success) => console.log(success));
+ *   // later: subscription.remove();
  */
-import {NativeModules} from 'react-native';
+import {NativeModules, DeviceEventEmitter} from 'react-native';
 
 const {CleverTapSecondary} = NativeModules;
 
@@ -45,5 +63,11 @@ if (!CleverTapSecondary) {
       'Ensure native build is up to date (run npx react-native run-android/ios).',
   );
 }
+
+// The native side emits variable updates over RN's global device event channel
+// (RCTDeviceEventEmitter / DeviceEventManagerModule) rather than a per-module
+// NativeEventEmitter, so this listens the same way on both Android and iOS.
+export const addSecondaryVariablesChangedListener = (callback) =>
+  DeviceEventEmitter.addListener('CleverTapSecondaryVariablesChanged', callback);
 
 export default CleverTapSecondary;

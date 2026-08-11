@@ -15,6 +15,9 @@ class CleverTapSecondary: NSObject, CleverTapProductConfigDelegate {
 
   private var secondaryInstance: CleverTap?
 
+  // Top-level Variables (Product Experiences) registered via defineVariables, keyed by name
+  private var variables: [String: CTVar] = [:]
+
   override init() {
     super.init()
     initializeSecondaryInstance()
@@ -54,7 +57,7 @@ class CleverTapSecondary: NSObject, CleverTapProductConfigDelegate {
 
   // MARK: - Event emitter support
   @objc override func supportedEvents() -> [String] {
-    return ["CleverTapSecondaryProductConfigActivated"]
+    return ["CleverTapSecondaryProductConfigActivated", "CleverTapSecondaryVariablesChanged"]
   }
 
   /// Required for React Native to run methods on the main queue
@@ -116,6 +119,93 @@ class CleverTapSecondary: NSObject, CleverTapProductConfigDelegate {
     let itemList = items as? [[String: Any]] ?? []
     instance.recordChargedEvent(withDetails: details, andItems: itemList)
     NSLog("CleverTapSecondary: Charged event recorded on secondary instance")
+  }
+
+  // MARK: - Variables (Product Experiences)
+  // Mirrors clevertap-react-native's own Variables bridge (defineVariables /
+  // syncVariables / fetchVariables / onVariablesChanged), but scoped to the
+  // secondary instance so PE Variables defined on Dashboard 2 resolve here
+  // instead of on the default (primary) instance.
+
+  private func isBoolNumber(_ number: NSNumber) -> Bool {
+    return CFGetTypeID(number) == CFBooleanGetTypeID()
+  }
+
+  private func createVar(name: String, value: Any) -> CTVar? {
+    guard let instance = secondaryInstance else { return nil }
+    if let stringValue = value as? String {
+      return instance.defineVar(name: name, string: stringValue)
+    }
+    if let dictValue = value as? NSDictionary {
+      return instance.defineVar(name: name, dictionary: dictValue as? [AnyHashable: Any])
+    }
+    if let numberValue = value as? NSNumber {
+      if isBoolNumber(numberValue) {
+        return instance.defineVar(name: name, boolean: numberValue.boolValue)
+      }
+      return instance.defineVar(name: name, number: numberValue)
+    }
+    return nil
+  }
+
+  /// Registers top-level variables (e.g. a "movie" folder) with defaults on the
+  /// secondary instance. Nested objects are expanded into the dashboard folder
+  /// structure automatically by the SDK.
+  @objc func defineVariables(_ variablesDict: NSDictionary) {
+    guard secondaryInstance != nil else {
+      NSLog("CleverTapSecondary: Instance not initialized, cannot define variables")
+      return
+    }
+    for (key, value) in variablesDict {
+      guard let keyString = key as? String else { continue }
+      if let ctVar = createVar(name: keyString, value: value) {
+        variables[keyString] = ctVar
+      }
+    }
+    NSLog("CleverTapSecondary: Variables defined on secondary instance")
+  }
+
+  /// Uploads variable definitions to the secondary dashboard (debug builds, test profile required).
+  @objc func syncVariables() {
+    guard let instance = secondaryInstance else {
+      NSLog("CleverTapSecondary: Instance not initialized, cannot sync variables")
+      return
+    }
+    instance.syncVariables()
+  }
+
+  /// Pulls the latest variable values from the secondary dashboard.
+  @objc func fetchVariables(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard let instance = secondaryInstance else {
+      resolve(false)
+      return
+    }
+    instance.fetchVariables { success in
+      NSLog("CleverTapSecondary: fetchVariables success=%d", success)
+      resolve(success)
+    }
+  }
+
+  /// Registers a listener that emits "CleverTapSecondaryVariablesChanged" to JS
+  /// (with the current resolved values) whenever the secondary instance's
+  /// variables update — i.e. after a fetch resolves with new values.
+  @objc func onVariablesChanged() {
+    guard let instance = secondaryInstance else {
+      NSLog("CleverTapSecondary: Instance not initialized, cannot listen for variable changes")
+      return
+    }
+    instance.onVariablesChanged { [weak self] in
+      self?.emitVariablesChanged()
+    }
+  }
+
+  private func emitVariablesChanged() {
+    var result: [String: Any] = [:]
+    for (key, ctVar) in variables {
+      result[key] = ctVar.value ?? NSNull()
+    }
+    sendEvent(withName: "CleverTapSecondaryVariablesChanged", body: result)
+    NSLog("CleverTapSecondary: Emitted CleverTapSecondaryVariablesChanged to JS")
   }
 
   // MARK: - Product Config (Product Experiences)

@@ -31,8 +31,8 @@
             android:name="CLEVERTAP_ACCOUNT_ID"
             android:value="R57-875-KK7Z" />
 
-            <!-- <meta-data 
-            android:name="CLEVERTAP_REGION" 
+            <!-- <meta-data
+            android:name="CLEVERTAP_REGION"
             android:value="us1"/> -->
 
             <meta-data

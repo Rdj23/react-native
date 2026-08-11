@@ -14,15 +14,17 @@ export function UserProvider({ children }) {
 
   // Sync subscription tier to both dashboards whenever it changes
   // Per docs: after updating user properties used in PE segments,
-  // immediately call fetchVariables to re-evaluate segments
+  // immediately call fetchVariables to re-evaluate segments.
+  // PE Variables are defined on Dashboard 2 (secondary), so the re-evaluation
+  // fetch must run on CleverTapSecondary, not the default (primary) instance.
   useEffect(() => {
     if (isLoggedIn) {
       CleverTap.profileSet({ 'Subscription Tier': mockSubscriptionTier });
       CleverTapSecondary?.profileSet?.({ 'Subscription Tier': mockSubscriptionTier });
 
       // Re-evaluate PE segments immediately after profile update
-      CleverTap.fetchVariables((err, success) => {
-        console.log('[UserContext] fetchVariables after tier change:', success, err);
+      CleverTapSecondary?.fetchVariables?.()?.then((success) => {
+        console.log('[UserContext] fetchVariables after tier change:', success);
       });
     }
   }, [mockSubscriptionTier, isLoggedIn]);

@@ -1,6 +1,11 @@
 /**
  * useRemoteConfig — Custom hook for CleverTap Product Experiences (Variables).
  *
+ * PE Variables are defined on Dashboard 2 (secondary account, TEST-K9K-Z94-R46Z),
+ * so this talks to the CleverTapSecondary native module instead of the default
+ * `clevertap-react-native` import — the default import resolves to Dashboard 1
+ * (primary), which has no Variables defined and would never return real values.
+ *
  * Uses the CleverTap Variables API (defineVariables → fetchVariables →
  * onVariablesChanged / getVariables) as per the official docs:
  * https://developer.clevertap.com/docs/react-native-remote-config
@@ -41,7 +46,9 @@
  * 3. refetch() can be called after tier change to re-evaluate segments
  */
 import {useState, useEffect, useRef, useCallback} from 'react';
-import CleverTap from 'clevertap-react-native';
+import CleverTapSecondary, {
+  addSecondaryVariablesChangedListener,
+} from '../services/CleverTapSecondary';
 
 // Flat defaults used by ThemeContext and the rest of the app
 const DEFAULTS = {
@@ -128,44 +135,39 @@ export default function useRemoteConfig() {
 
   // Force re-fetch — useful after tier/profile change for segment re-evaluation
   const refetch = useCallback(() => {
-    CleverTap.fetchVariables((err, success) => {
-      console.log('[RemoteConfig] refetch result:', success, err);
+    if (!CleverTapSecondary) return;
+    CleverTapSecondary.fetchVariables().then((success) => {
+      console.log('[RemoteConfig] refetch result:', success);
     });
   }, []);
 
   useEffect(() => {
+    if (!CleverTapSecondary) return undefined;
+
     // Step 1: Define variables with defaults — nested under "movie" folder to match dashboard
-    CleverTap.defineVariables(VARIABLES);
+    CleverTapSecondary.defineVariables(VARIABLES);
 
     // Step 2: Sync variables to the server (registers them on the dashboard)
-    CleverTap.syncVariables();
+    CleverTapSecondary.syncVariables();
 
     // Step 3: Listen for variable changes (fires after fetch resolves with new values)
-    CleverTap.onVariablesChanged((variables) => {
+    const subscription = addSecondaryVariablesChangedListener((variables) => {
       if (!mountedRef.current) return;
       console.log('[RemoteConfig] onVariablesChanged:', variables);
       // Extract the "movie" folder object; fall back to flat variables if not nested
       const movieVars = variables?.movie || variables;
       setConfig(buildConfig(movieVars));
     });
+    CleverTapSecondary.onVariablesChanged();
 
-    // Step 4: Log individual variable changes for debugging (keys are "movie.variable_name")
-    Object.keys(DEFAULTS).forEach((key) => {
-      CleverTap.onValueChanged(`movie.${key}`, (variable) => {
-        console.log(`[RemoteConfig] onValueChanged: movie.${key} =`, variable);
-      });
-    });
-
-    // Step 5: Fetch latest variable values from the dashboard
-    CleverTap.fetchVariables((err, success) => {
-      if (err) {
-        console.warn('[RemoteConfig] fetchVariables error:', err);
-      }
+    // Step 4: Fetch latest variable values from the dashboard
+    CleverTapSecondary.fetchVariables().then((success) => {
       console.log('[RemoteConfig] fetchVariables success:', success);
     });
 
     return () => {
       mountedRef.current = false;
+      subscription.remove();
     };
   }, []);
 

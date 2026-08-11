@@ -23,7 +23,12 @@
       "Bash(npm run *)",
       "Bash(npm start *)",
       "Bash(xcodebuild build *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(./gradlew assembleRelease --no-daemon)",
+      "Bash(./gradlew assembleDebug --no-daemon)",
+      "Bash(unzip -l /Users/rohan.jadhav/Desktop/react-native/ecommerceApp/android/app/build/outputs/apk/debug/app-debug.apk)",
+      "Bash(./gradlew :app:compileDebugJavaWithJavac --no-daemon)",
+      "Bash(xcodebuild -workspace ecommerceApp.xcworkspace -list)"
     ],
     "additionalDirectories": [
       "/Users/rohan.jadhav/Desktop/react-native/ecommerceApp/android/app/build/outputs/apk/debug",

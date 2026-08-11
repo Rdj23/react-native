@@ -5,6 +5,10 @@ import android.util.Log;
 import com.clevertap.android.sdk.CleverTapAPI;
 import com.clevertap.android.sdk.CleverTapInstanceConfig;
 import com.clevertap.android.sdk.product_config.CTProductConfigListener;
+import com.clevertap.android.sdk.variables.Var;
+import com.clevertap.android.sdk.variables.callbacks.FetchVariablesCallback;
+import com.clevertap.android.sdk.variables.callbacks.VariablesChangedCallback;
+import com.clevertap.react.CleverTapUtils;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
@@ -35,6 +39,9 @@ public class CleverTapSecondaryModule extends ReactContextBaseJavaModule {
     private static final String ACCOUNT_TOKEN = "TEST-4c1-3c3";
 
     private CleverTapAPI secondaryInstance;
+
+    // Top-level Variables (Product Experiences) registered via defineVariables, keyed by name
+    private final Map<String, Var<Object>> variables = new HashMap<>();
 
     public CleverTapSecondaryModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -185,6 +192,102 @@ public class CleverTapSecondaryModule extends ReactContextBaseJavaModule {
 
         secondaryInstance.pushChargedEvent(details, itemList);
         Log.d(TAG, "Charged event recorded on secondary instance");
+    }
+
+    // ─── Variables (Product Experiences) ───────────────────────────────────
+    // Mirrors clevertap-react-native's own Variables bridge (defineVariables /
+    // syncVariables / fetchVariables / onVariablesChanged), but scoped to the
+    // secondary instance so PE Variables defined on Dashboard 2 resolve here
+    // instead of on the default (primary) instance.
+
+    /**
+     * Registers top-level variables (e.g. a "movie" folder) with defaults on the
+     * secondary instance. Nested objects are expanded into the dashboard folder
+     * structure automatically by the SDK.
+     */
+    @ReactMethod
+    public void defineVariables(ReadableMap object) {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot define variables");
+            return;
+        }
+        for (Map.Entry<String, Object> entry : object.toHashMap().entrySet()) {
+            String key = entry.getKey();
+            Var<Object> variable = secondaryInstance.defineVariable(key, entry.getValue());
+            variables.put(key, variable);
+        }
+        Log.d(TAG, "Variables defined on secondary instance: " + object.toHashMap().keySet());
+    }
+
+    /**
+     * Uploads variable definitions to the secondary dashboard (debug builds, test profile required).
+     */
+    @ReactMethod
+    public void syncVariables() {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot sync variables");
+            return;
+        }
+        secondaryInstance.syncVariables();
+    }
+
+    /**
+     * Pulls the latest variable values from the secondary dashboard.
+     *
+     * @param promise Resolves with true/false for fetch success.
+     */
+    @ReactMethod
+    public void fetchVariables(Promise promise) {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot fetch variables");
+            promise.resolve(false);
+            return;
+        }
+        secondaryInstance.fetchVariables(new FetchVariablesCallback() {
+            @Override
+            public void onVariablesFetched(boolean isSuccess) {
+                Log.d(TAG, "fetchVariables on secondary instance: success=" + isSuccess);
+                promise.resolve(isSuccess);
+            }
+        });
+    }
+
+    /**
+     * Registers a listener that emits "CleverTapSecondaryVariablesChanged" to JS
+     * (with the current resolved values) whenever the secondary instance's
+     * variables update — i.e. after a fetch resolves with new values.
+     */
+    @ReactMethod
+    public void onVariablesChanged() {
+        if (secondaryInstance == null) {
+            Log.w(TAG, "Secondary instance not initialized, cannot listen for variable changes");
+            return;
+        }
+        secondaryInstance.addVariablesChangedCallback(new VariablesChangedCallback() {
+            @Override
+            public void variablesChanged() {
+                emitVariablesChanged();
+            }
+        });
+    }
+
+    private void emitVariablesChanged() {
+        WritableMap result = Arguments.createMap();
+        for (Map.Entry<String, Var<Object>> entry : variables.entrySet()) {
+            Var<Object> variable = entry.getValue();
+            if (variable == null) continue;
+            result.merge(CleverTapUtils.MapUtil.addValue(entry.getKey(), variable.value()));
+        }
+        try {
+            ReactApplicationContext ctx = getReactApplicationContext();
+            if (ctx != null && ctx.hasActiveReactInstance()) {
+                ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit("CleverTapSecondaryVariablesChanged", result);
+                Log.d(TAG, "Emitted CleverTapSecondaryVariablesChanged to JS: " + result.toString());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to emit variables changed event to JS", e);
+        }
     }
 
     // ─── Product Config (Product Experiences) ─────────────────────────────

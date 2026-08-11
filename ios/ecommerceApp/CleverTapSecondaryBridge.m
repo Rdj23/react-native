@@ -12,6 +12,12 @@ RCT_EXTERN_METHOD(profileSet:(NSDictionary *)profile)
 RCT_EXTERN_METHOD(onUserLogin:(NSDictionary *)profile)
 RCT_EXTERN_METHOD(recordChargedEvent:(NSDictionary *)chargeDetails items:(NSArray *)items)
 
+// Variables (Product Experiences)
+RCT_EXTERN_METHOD(defineVariables:(NSDictionary *)variablesDict)
+RCT_EXTERN_METHOD(syncVariables)
+RCT_EXTERN_METHOD(fetchVariables:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(onVariablesChanged)
+
 // Product Config (Product Experiences)
 RCT_EXTERN_METHOD(productConfigFetch)
 RCT_EXTERN_METHOD(productConfigActivate)
