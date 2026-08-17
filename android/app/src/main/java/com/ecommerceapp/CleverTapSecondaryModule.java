@@ -278,12 +278,14 @@ public class CleverTapSecondaryModule extends ReactContextBaseJavaModule {
             if (variable == null) continue;
             result.merge(CleverTapUtils.MapUtil.addValue(entry.getKey(), variable.value()));
         }
+        Log.d(TAG, "Emitting CleverTapSecondaryVariablesChanged to JS: " + variables.keySet());
         try {
             ReactApplicationContext ctx = getReactApplicationContext();
             if (ctx != null && ctx.hasActiveReactInstance()) {
+                // `result` is a WritableNativeMap — it becomes unusable the instant it's
+                // handed to the bridge, so nothing below may read it (e.g. via toString()).
                 ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                     .emit("CleverTapSecondaryVariablesChanged", result);
-                Log.d(TAG, "Emitted CleverTapSecondaryVariablesChanged to JS: " + result.toString());
             }
         } catch (Exception e) {
             Log.w(TAG, "Failed to emit variables changed event to JS", e);

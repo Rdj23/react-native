@@ -16,6 +16,12 @@ export default function CustomDrawerContent({navigation}) {
 
   const goToTab = t => { navigation.closeDrawer(); navigation.navigate('MainTabs', {screen: t}); };
 
+  // Navigates to a screen nested inside HomeStack (which lives under the Home tab)
+  const goToHomeStackScreen = screen => {
+    navigation.closeDrawer();
+    navigation.navigate('MainTabs', {screen: 'Home', params: {screen}});
+  };
+
   const isPremium = mockSubscriptionTier === 'premium';
 
   const handleTierToggle = useCallback((value) => {
@@ -70,6 +76,13 @@ export default function CustomDrawerContent({navigation}) {
         </View>
         <Text style={s.devHint}>
           Toggles subscription tier for paywall testing
+        </Text>
+
+        <DrawerItem label="Native Display" labelStyle={s.lbl}
+          icon={({size}) => <Ionicons name="tv-outline" size={size} color={colors.primary} />}
+          onPress={() => goToHomeStackScreen('NativeDisplay')} />
+        <Text style={s.devHint}>
+          Renders Native Display units by slot (position key-value)
         </Text>
       </View>
 
