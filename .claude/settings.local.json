@@ -58,7 +58,8 @@
       "Bash(unzip -l \"/Users/rohan.jadhav/Desktop/react-native/ecommerceApp-customer-share-20260818.zip\")",
       "Bash(git ls-remote *)",
       "Bash(git credential-osxkeychain *)",
-      "Bash(ssh -T git@github.com -o BatchMode=yes -o ConnectTimeout=5)"
+      "Bash(ssh -T git@github.com -o BatchMode=yes -o ConnectTimeout=5)",
+      "Bash(git branch *)"
     ],
     "additionalDirectories": [
       "/Users/rohan.jadhav/Desktop/react-native/ecommerceApp/android/app/build/outputs/apk/debug",
