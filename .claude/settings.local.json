@@ -49,12 +49,22 @@
       "Bash(adb -s emulator-5554 shell am broadcast -a com.ecommerceapp.RELOAD_APP_ACTION)",
       "Bash(adb -s emulator-5554 shell dumpsys activity activities)",
       "Bash(awk -F: '{print $1}')",
-      "Bash(curl -s http://localhost:8081/status)"
+      "Bash(curl -s http://localhost:8081/status)",
+      "Bash(grep -iE \"google-services|GoogleService-Info|\\\\.jks$|\\\\.keystore$|\\\\.p12$|\\\\.env|credentials|secret|apikey|api_key\")",
+      "Bash(keytool -list -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey)",
+      "Bash(git check-ignore *)",
+      "Bash(grep -iE \"local\\\\.properties|\\\\.env$\")",
+      "Bash(DST=/Users/rohan.jadhav/Desktop/react-native/ecommerceApp-customer-share *)",
+      "Bash(unzip -l \"/Users/rohan.jadhav/Desktop/react-native/ecommerceApp-customer-share-20260818.zip\")",
+      "Bash(git ls-remote *)",
+      "Bash(git credential-osxkeychain *)",
+      "Bash(ssh -T git@github.com -o BatchMode=yes -o ConnectTimeout=5)"
     ],
     "additionalDirectories": [
       "/Users/rohan.jadhav/Desktop/react-native/ecommerceApp/android/app/build/outputs/apk/debug",
       "/Users/rohan.jadhav/Desktop",
-      "/tmp"
+      "/tmp",
+      "/Users/rohan.jadhav/Desktop/react-native/ecommerceApp-customer-share/src/hooks"
     ]
   }
 }

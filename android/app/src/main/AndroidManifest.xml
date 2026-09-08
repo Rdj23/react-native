@@ -29,7 +29,7 @@
       </activity>
           <meta-data
             android:name="CLEVERTAP_ACCOUNT_ID"
-            android:value="R57-875-KK7Z" />
+            android:value="RZ9-4Z4-577Z" />
 
             <!-- <meta-data
             android:name="CLEVERTAP_REGION"
@@ -37,7 +37,7 @@
 
             <meta-data
             android:name="CLEVERTAP_TOKEN"
-            android:value="5ab-a52" />
+            android:value="414-c12" />
 
             <meta-data
               android:name="CLEVERTAP_BACKGROUND_SYNC"
